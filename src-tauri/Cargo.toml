@@ -36,5 +36,5 @@ uuid = { version = "1", features = ["v4"] }
 # Transcription
 whisper-rs = "0.15.1"
 rubato = "1.0.0"
-audioadapter = "2.0"
-audioadapter-buffers = "2.0"
+audioadapter = "2.0.0"
+audioadapter-buffers = "2.0.0"

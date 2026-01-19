@@ -4,10 +4,12 @@ use rubato::{
     WindowFunction,
 };
 use std::path::Path;
+use audioadapter::Adapter;
+use audioadapter_buffers::owned::InterleavedOwned;
 
 const WHISPER_SAMPLE_RATE: u32 = 16000;
 
-pub fn load_and_convert(path: &Path) -> Result<Vec<f32>, Box<dyn std::error::Error + Send + Sync>> {
+pub fn convert_audio(path: &Path) -> Result<Vec<f32>, Box<dyn std::error::Error + Send + Sync>> {
     let reader = WavReader::open(path)?;
     let spec = reader.spec();
 
@@ -70,8 +72,6 @@ fn resample(
     from_rate: u32,
     to_rate: u32,
 ) -> Result<Vec<f32>, Box<dyn std::error::Error + Send + Sync>> {
-    use audioadapter::Adapter;
-    use audioadapter_buffers::owned::InterleavedOwned;
 
     let ratio = to_rate as f64 / from_rate as f64;
     let chunk_size = 1024;
@@ -120,22 +120,4 @@ fn resample(
     }
 
     Ok(output)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_stereo_to_mono() {
-        let stereo = vec![1.0f32, 0.5, 0.8, 0.2];
-        let mono: Vec<f32> = stereo
-            .chunks(2)
-            .map(|chunk| (chunk[0] + chunk[1]) / 2.0)
-            .collect();
-
-        assert_eq!(mono.len(), 2);
-        assert!((mono[0] - 0.75).abs() < 0.001); 
-        assert!((mono[1] - 0.5).abs() < 0.001); 
-    }
 }

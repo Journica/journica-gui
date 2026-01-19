@@ -5,7 +5,7 @@ use sqlx::SqlitePool;
 use tauri::Manager;
 use uuid::Uuid;
 
-use crate::{AppState, AudioCommand};
+use crate::{AppState, AudioCommand, transcription};
 use super::db::Entry;
 
 #[derive(Clone, Serialize)]
@@ -91,6 +91,7 @@ pub fn start_recording(
 
 #[tauri::command]
 pub async fn stop_recording(
+    app: tauri::AppHandle,
     state: tauri::State<'_, Mutex<AppState>>,
     pool: tauri::State<'_, SqlitePool>,
 ) -> Result<Option<Entry>, String> {
@@ -114,6 +115,15 @@ pub async fn stop_recording(
 
         println!("Saved entry: {}", info.id);
 
+        let recordings_dir = app
+            .path()
+            .app_data_dir()
+            .map_err(|e| e.to_string())?
+            .join("recordings");
+        let file_path = recordings_dir.join(&info.filename);
+
+        transcription::spawn_transcription_thread(file_path);
+
         Ok(Some(Entry {
             id: info.id,
             filename: info.filename,
@@ -125,4 +135,5 @@ pub async fn stop_recording(
     } else {
         Ok(None)
     }
+
 }
