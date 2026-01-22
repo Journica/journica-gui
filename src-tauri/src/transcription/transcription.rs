@@ -2,9 +2,23 @@ use std::path::PathBuf;
 use std::thread;
 
 use crate::transcription::audio_prep;
+use sqlx::SqlitePool;
+use tauri::{AppHandle, Manager};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
-pub fn spawn_transcription_thread(file_path: PathBuf) {
+pub struct TranscriptSegment {
+    segment_index: u64,
+    start_ms: u64,
+    end_ms: u64,
+    text: String,
+}
+
+pub struct TranscriptionResult {
+    full_text: String,
+    segments: Vec<TranscriptSegment>,
+}
+
+pub fn spawn_transcription_thread(file_path: PathBuf, info_id: String, app: AppHandle) {
     thread::spawn(move || {
         let model_path = "resources/ggml-base.en.bin";
 
@@ -36,18 +50,66 @@ pub fn spawn_transcription_thread(file_path: PathBuf) {
         params.set_print_progress(false);
         params.set_print_realtime(false);
         params.set_print_timestamps(false);
+        params.set_token_timestamps(true);
+        params.set_max_len(1); 
 
         state
             .full(params, &samples[..])
             .expect("failed to run model");
 
-        for segment in state.as_iter() {
-            println!(
-                "[{} - {}]: {}",
-                segment.start_timestamp(),
-                segment.end_timestamp(),
-                segment
-            );
+        let db = app.state::<SqlitePool>();
+
+        let mut segments: Vec<TranscriptSegment> = Vec::new();
+        let mut full_text_parts: Vec<String> = Vec::new();
+
+        for (i, segment) in state.as_iter().enumerate() {
+            let start_ms = (segment.start_timestamp() * 10) as u64;
+            let end_ms = (segment.end_timestamp() * 10) as u64;
+            let text = segment.to_str().unwrap_or_default().to_owned();
+
+            full_text_parts.push(text.clone());
+            segments.push(TranscriptSegment {
+                segment_index: i as u64,
+                start_ms,
+                end_ms,
+                text,
+            });
         }
+
+        let full_text = full_text_parts.join(" ");
+
+        tauri::async_runtime::block_on(async {
+            if let Err(e) = sqlx::query("UPDATE entries SET transcript = ? WHERE id = ?")
+                .bind(&full_text)
+                .bind(&info_id)
+                .execute(db.inner())
+                .await
+            {
+                eprintln!("Failed to save transcript: {}", e);
+                return;
+            }
+
+            for segment in &segments {
+                if let Err(e) = sqlx::query(
+                    "INSERT INTO transcript_segments (entry_id, segment_index, start_ms, end_ms, text) VALUES (?, ?, ?, ?, ?)"
+                )
+                    .bind(&info_id)
+                    .bind(segment.segment_index as i64)
+                    .bind(segment.start_ms as i64)
+                    .bind(segment.end_ms as i64)
+                    .bind(&segment.text)
+                    .execute(db.inner())
+                    .await
+                {
+                    eprintln!("Failed to save segment {}: {}", segment.segment_index, e);
+                }
+            }
+
+            println!(
+                "Saved transcript and {} segments for entry: {}",
+                segments.len(),
+                info_id
+            );
+        });
     });
 }

@@ -26,6 +26,20 @@ pub struct Entry {
     pub title: Option<String>,
 }
 
+#[derive(Clone, Serialize, Deserialize, FromRow)]
+pub struct TranscriptSegment {
+
+}
+
+#[tauri::command]
+pub async fn get_transcript_segments(entry_id: String) {
+
+}
+
+#[tauri::command]
+pub async fn get_segment_at_time(entry_id: String, time_ms: i64) {
+}
+
 #[tauri::command]
 pub async fn get_entries(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<Entry>, String> {
     let entries = sqlx::query_as::<_, Entry>(

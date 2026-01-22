@@ -123,7 +123,7 @@ pub async fn stop_recording(
 
         let file_path = recordings_dir.join(&info.filename);
 
-        transcription::spawn_transcription_thread(file_path);
+        transcription::spawn_transcription_thread(file_path, info.id.clone(), app.clone());
 
         Ok(Some(Entry {
             id: info.id,

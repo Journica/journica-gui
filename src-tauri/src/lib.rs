@@ -40,7 +40,9 @@ pub fn run() {
             commands::stop_recording,
             commands::get_entries,
             commands::get_recording_path,
-            commands::delete_entry
+            commands::delete_entry,
+            commands::get_transcript_segments,
+            commands::get_segment_at_time
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
