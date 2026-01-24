@@ -3,8 +3,10 @@ use std::thread;
 
 use crate::transcription::audio_prep;
 use sqlx::SqlitePool;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+
+use std::sync::Arc;
 
 pub struct TranscriptSegment {
     segment_index: u64,
@@ -13,12 +15,17 @@ pub struct TranscriptSegment {
     text: String,
 }
 
+#[derive(Clone, serde::Serialize)]
+pub struct TranscriptionProgress {
+    pub entry_id: String, 
+    pub progress: i32, // 0-100
+}
 pub struct TranscriptionResult {
     full_text: String,
     segments: Vec<TranscriptSegment>,
 }
 
-pub fn spawn_transcription_thread(file_path: PathBuf, info_id: String, app: AppHandle) {
+pub fn spawn_transcription_thread(file_path: PathBuf, entry_id: String, app: AppHandle) {
     thread::spawn(move || {
         let model_path = "resources/ggml-base.en.bin";
 
@@ -53,6 +60,16 @@ pub fn spawn_transcription_thread(file_path: PathBuf, info_id: String, app: AppH
         params.set_token_timestamps(true);
         params.set_max_len(1); 
 
+        let app_for_callback = app.clone();
+        let entry_id_for_callback = entry_id.clone();
+
+        params.set_progress_callback_safe(move |progress| {
+            let _ = app_for_callback.emit("transcription-progress", TranscriptionProgress {
+                entry_id: entry_id_for_callback.clone(),
+                progress
+            });
+        });
+
         state
             .full(params, &samples[..])
             .expect("failed to run model");
@@ -81,7 +98,7 @@ pub fn spawn_transcription_thread(file_path: PathBuf, info_id: String, app: AppH
         tauri::async_runtime::block_on(async {
             if let Err(e) = sqlx::query("UPDATE entries SET transcript = ? WHERE id = ?")
                 .bind(&full_text)
-                .bind(&info_id)
+                .bind(&entry_id)
                 .execute(db.inner())
                 .await
             {
@@ -93,7 +110,7 @@ pub fn spawn_transcription_thread(file_path: PathBuf, info_id: String, app: AppH
                 if let Err(e) = sqlx::query(
                     "INSERT INTO transcript_segments (entry_id, segment_index, start_ms, end_ms, text) VALUES (?, ?, ?, ?, ?)"
                 )
-                    .bind(&info_id)
+                    .bind(&entry_id)
                     .bind(segment.segment_index as i64)
                     .bind(segment.start_ms as i64)
                     .bind(segment.end_ms as i64)
@@ -108,7 +125,7 @@ pub fn spawn_transcription_thread(file_path: PathBuf, info_id: String, app: AppH
             println!(
                 "Saved transcript and {} segments for entry: {}",
                 segments.len(),
-                info_id
+                entry_id
             );
         });
     });
