@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "seed:data": "python3 scripts/seed_fake_data.py"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",

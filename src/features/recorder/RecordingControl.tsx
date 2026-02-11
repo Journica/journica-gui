@@ -8,7 +8,7 @@ export function RecordingControl({ onStop }: Props) {
   const { isRecording, toggleRecording } = useRecording(onStop);
 
   return (
-    <main className="flex-1 p-8 flex flex-col items-center justify-center">
+    <div className="flex items-center gap-4">
       <button
         className={`px-8 py-4 text-xl rounded-full transition-colors ${
           isRecording
@@ -20,8 +20,8 @@ export function RecordingControl({ onStop }: Props) {
         {isRecording ? "⏹ Stop" : "⏺ Record"}
       </button>
       {isRecording && (
-        <div className="mt-4 text-red-500 animate-pulse">Recording...</div>
+        <div className="text-red-500 animate-pulse">Recording...</div>
       )}
-    </main>
+    </div>
   );
 }

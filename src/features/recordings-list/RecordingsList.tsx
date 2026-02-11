@@ -6,9 +6,11 @@ import { formatDuration } from "../../shared/utils/formatDuration";
 interface Props {
   entries: Entry[];
   onDelete: (id: string) => void;
+  onSelect: (id: string) => void;
+  selectedEntryId: string | null;
 }
 
-export function RecordingsList({ entries, onDelete }: Props) {
+export function RecordingsList({ entries, onDelete, onSelect, selectedEntryId }: Props) {
   const { playingId, audioRef, handlePlay, handleEnded } = useAudioPlayer();
   const progressMap = useTranscriptionProgress();
 
@@ -18,7 +20,15 @@ export function RecordingsList({ entries, onDelete }: Props) {
       <audio ref={audioRef} onEnded={handleEnded} className="hidden" />
       <ul className="flex-1 overflow-y-auto p-2 space-y-2">
         {entries.map((entry) => (
-          <li key={entry.id} className="p-2 bg-gray-100 rounded">
+          <li
+            key={entry.id}
+            className={`p-2 rounded cursor-pointer transition-colors ${
+              selectedEntryId === entry.id
+                ? "bg-blue-100 ring-1 ring-blue-300"
+                : "bg-gray-100 hover:bg-gray-200"
+            }`}
+            onClick={() => onSelect(entry.id)}
+          >
             <div className="flex justify-between items-center">
               <div className="flex-1 min-w-0">
                 <div className="font-mono text-sm truncate">
@@ -37,13 +47,19 @@ export function RecordingsList({ entries, onDelete }: Props) {
               </div>
               <div className="flex gap-1 ml-2">
                 <button
-                  onClick={() => handlePlay(entry)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handlePlay(entry);
+                  }}
                   className="px-2 py-1 text-blue-500 hover:bg-blue-100 rounded"
                 >
                   {playingId === entry.id ? "⏹" : "▶"}
                 </button>
                 <button
-                  onClick={() => onDelete(entry.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDelete(entry.id);
+                  }}
                   className="px-2 py-1 text-red-500 hover:bg-red-100 rounded"
                 >
                   ✕
