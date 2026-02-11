@@ -10,6 +10,8 @@ Generate artificial recordings and transcripts for local testing:
 npm run seed:data
 ```
 
+Default seed size is `200` entries.
+
 Useful flags:
 
 ```bash

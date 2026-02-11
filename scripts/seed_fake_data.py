@@ -185,7 +185,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Seed fake audio recordings and transcripts for offline-audio-journal."
     )
-    parser.add_argument("--count", type=int, default=30, help="Number of fake entries to create.")
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=200,
+        help="Number of fake entries to create (default: 200).",
+    )
     parser.add_argument(
         "--append",
         action="store_true",
@@ -200,15 +205,16 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+    count = args.count
 
-    if args.count < 1:
-        raise SystemExit("--count must be at least 1")
+    if count < 1:
+        raise SystemExit("count must be at least 1")
 
-    seed_fake_entries(args.app_dir, args.count, args.append, args.seed)
+    seed_fake_entries(args.app_dir, count, args.append, args.seed)
 
     mode = "appended" if args.append else "replaced"
     print(
-        f"Fake data {mode}: {args.count} entries in {args.app_dir / 'journal.db'} at {datetime.now().isoformat(timespec='seconds')}"
+        f"Fake data {mode}: {count} entries in {args.app_dir / 'journal.db'} at {datetime.now().isoformat(timespec='seconds')}"
     )
 
 

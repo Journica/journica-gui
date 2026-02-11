@@ -39,6 +39,7 @@ pub fn run() {
             commands::start_recording,
             commands::stop_recording,
             commands::get_entries,
+            commands::query_entries,
             commands::get_recording_path,
             commands::delete_entry,
             commands::get_transcript_segments,

@@ -1,0 +1,28 @@
+DROP TRIGGER IF EXISTS entries_ai;
+DROP TRIGGER IF EXISTS entries_ad;
+DROP TRIGGER IF EXISTS entries_au;
+DROP TABLE IF EXISTS entries_fts;
+
+CREATE VIRTUAL TABLE entries_fts USING fts5(
+  title,
+  transcript,
+  content='entries',
+  content_rowid='rowid'
+);
+
+CREATE TRIGGER entries_ai AFTER INSERT ON entries BEGIN
+  INSERT INTO entries_fts(rowid, title, transcript)
+  VALUES (NEW.rowid, NEW.title, NEW.transcript);
+END;
+
+CREATE TRIGGER entries_ad AFTER DELETE ON entries BEGIN
+  INSERT INTO entries_fts(entries_fts, rowid, title, transcript)
+  VALUES ('delete', OLD.rowid, OLD.title, OLD.transcript);
+END;
+
+CREATE TRIGGER entries_au AFTER UPDATE ON entries BEGIN
+  INSERT INTO entries_fts(entries_fts, rowid, title, transcript)
+  VALUES ('delete', OLD.rowid, OLD.title, OLD.transcript);
+  INSERT INTO entries_fts(rowid, title, transcript)
+  VALUES (NEW.rowid, NEW.title, NEW.transcript);
+END;
