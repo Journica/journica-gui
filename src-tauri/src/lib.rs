@@ -43,7 +43,12 @@ pub fn run() {
             commands::get_recording_path,
             commands::delete_entry,
             commands::get_transcript_segments,
-            commands::get_segment_at_time
+            commands::get_segment_at_time,
+            commands::list_tags,
+            commands::create_tag,
+            commands::delete_tag,
+            commands::set_entry_tags,
+            commands::get_entry_tags
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

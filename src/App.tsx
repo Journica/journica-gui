@@ -4,14 +4,21 @@ import { RecordingsList, ScriptPanel, useRecordingsPanel } from "./features/reco
 function App() {
   const {
     entries,
+    totalEntries,
+    tags,
     loading,
     loadingMore,
     hasMore,
     searchQuery,
     setSearchQuery,
+    selectedFilterTagIds,
+    setSelectedFilterTagIds,
     loadEntries,
     loadMore,
     deleteEntry,
+    createTag,
+    deleteTag,
+    setEntryTags,
     selectedEntryId,
     setSelectedEntryId,
     selectedEntry,
@@ -34,11 +41,18 @@ function App() {
       <aside className="w-80 border-l bg-gray-50">
         <RecordingsList
           entries={entries}
+          totalEntries={totalEntries}
+          tags={tags}
           onDelete={deleteEntry}
+          onCreateTag={createTag}
+          onDeleteTag={deleteTag}
+          onSetEntryTags={setEntryTags}
           onSelect={setSelectedEntryId}
           selectedEntryId={selectedEntryId}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
+          selectedFilterTagIds={selectedFilterTagIds}
+          onSelectedFilterTagIdsChange={setSelectedFilterTagIds}
           onLoadMore={loadMore}
           loading={loading}
           loadingMore={loadingMore}

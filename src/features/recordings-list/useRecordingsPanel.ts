@@ -5,20 +5,34 @@ import { useSelectedEntry } from "./useSelectedEntry";
 export function useRecordingsPanel() {
   const {
     entries,
+    tags,
     loading,
     loadingMore,
     hasMore,
     searchQuery,
     setSearchQuery,
+    selectedFilterTagIds,
+    setSelectedFilterTagIds,
     loadEntries,
     loadMore,
     deleteEntry,
+    createTag,
+    deleteTag,
+    setEntryTags,
   } = useEntries();
 
-  const { selectedEntryId, setSelectedEntryId, selectedEntry, highlightedTranscript } = useSelectedEntry(
-    entries,
-    searchQuery,
-  );
+  const visibleEntries = useMemo(() => {
+    if (selectedFilterTagIds.length === 0) {
+      return entries;
+    }
+
+    return entries.filter((entry) => {
+      const entryTagIds = new Set(entry.tags.map((tag) => tag.id));
+      return selectedFilterTagIds.every((tagId) => entryTagIds.has(tagId));
+    });
+  }, [entries, selectedFilterTagIds]);
+
+  const { selectedEntryId, setSelectedEntryId, selectedEntry, highlightedTranscript } = useSelectedEntry(visibleEntries, searchQuery);
 
   const scriptMessage = useMemo(() => {
     if (!selectedEntry) {
@@ -37,15 +51,22 @@ export function useRecordingsPanel() {
   }, [searchQuery, selectedEntry]);
 
   return {
-    entries,
+    entries: visibleEntries,
+    totalEntries: entries.length,
+    tags,
     loading,
     loadingMore,
     hasMore,
     searchQuery,
     setSearchQuery,
+    selectedFilterTagIds,
+    setSelectedFilterTagIds,
     loadEntries,
     loadMore,
     deleteEntry,
+    createTag,
+    deleteTag,
+    setEntryTags,
     selectedEntryId,
     setSelectedEntryId,
     selectedEntry,
