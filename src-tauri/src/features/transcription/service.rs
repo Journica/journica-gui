@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 use std::thread;
 
-use crate::transcription::audio_prep;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter, Manager};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+
+use crate::features::transcription::audio_prep;
 
 pub struct TranscriptSegment {
     segment_index: u64,
@@ -16,7 +17,7 @@ pub struct TranscriptSegment {
 #[derive(Clone, serde::Serialize)]
 pub struct TranscriptionProgress {
     pub entry_id: String,
-    pub progress: i32, // 0-100
+    pub progress: i32,
 }
 
 pub fn spawn_transcription_thread(file_path: PathBuf, entry_id: String, app: AppHandle) {
@@ -108,15 +109,15 @@ pub fn spawn_transcription_thread(file_path: PathBuf, entry_id: String, app: App
 
             for segment in &segments {
                 if let Err(e) = sqlx::query(
-                    "INSERT INTO transcript_segments (entry_id, segment_index, start_ms, end_ms, text) VALUES (?, ?, ?, ?, ?)"
+                    "INSERT INTO transcript_segments (entry_id, segment_index, start_ms, end_ms, text) VALUES (?, ?, ?, ?, ?)",
                 )
-                    .bind(&entry_id)
-                    .bind(segment.segment_index as i64)
-                    .bind(segment.start_ms as i64)
-                    .bind(segment.end_ms as i64)
-                    .bind(&segment.text)
-                    .execute(db.inner())
-                    .await
+                .bind(&entry_id)
+                .bind(segment.segment_index as i64)
+                .bind(segment.start_ms as i64)
+                .bind(segment.end_ms as i64)
+                .bind(&segment.text)
+                .execute(db.inner())
+                .await
                 {
                     eprintln!("Failed to save segment {}: {}", segment.segment_index, e);
                 }

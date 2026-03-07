@@ -1,19 +1,14 @@
-use serde::Serialize;
 use sqlx::SqlitePool;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::Manager;
 use uuid::Uuid;
 
-use super::db::Entry;
-use crate::{transcription, AppState, AudioCommand};
-
-#[derive(Clone, Serialize)]
-pub struct RecordingInfo {
-    pub id: String,
-    pub filename: String,
-    pub created_at: i64,
-}
+use super::audio_engine::AudioCommand;
+use super::types::RecordingInfo;
+use crate::features::recordings::commands::Entry;
+use crate::features::transcription;
+use crate::shared::paths;
+use crate::AppState;
 
 fn timestamp_filename(secs: i64) -> String {
     let secs = secs as u64;
@@ -84,12 +79,7 @@ pub fn start_recording(
         .as_secs() as i64;
     let filename = timestamp_filename(created_at);
 
-    let recordings_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("recordings");
-
+    let recordings_dir = paths::recordings_dir(&app)?;
     std::fs::create_dir_all(&recordings_dir).map_err(|e| e.to_string())?;
 
     let file_path = recordings_dir.join(&filename);
@@ -133,12 +123,7 @@ pub async fn stop_recording(
     };
 
     if let Some(info) = info {
-        let recordings_dir = app
-            .path()
-            .app_data_dir()
-            .map_err(|e| e.to_string())?
-            .join("recordings");
-
+        let recordings_dir = paths::recordings_dir(&app)?;
         let file_path = recordings_dir.join(&info.filename);
 
         sqlx::query(
@@ -160,7 +145,7 @@ pub async fn stop_recording(
             id: info.id,
             filename: info.filename,
             created_at: info.created_at,
-            duration_seconds: duration_seconds,
+            duration_seconds,
             transcript: None,
             title: None,
         }))

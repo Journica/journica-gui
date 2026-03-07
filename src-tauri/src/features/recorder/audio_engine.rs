@@ -8,16 +8,18 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+type SharedWriter = Arc<Mutex<Option<WavWriter<BufWriter<File>>>>>;
+
 pub enum AudioCommand {
     Start { file_path: PathBuf },
     Stop { response_tx: Sender<Option<f64>> },
 }
 
-pub fn start_audio(
+fn start_audio(
     config: &SupportedStreamConfig,
     device: &Device,
     file_path: PathBuf,
-) -> Option<cpal::Stream> {
+) -> Option<(cpal::Stream, SharedWriter)> {
     println!("Starting recording to {:?}", file_path);
 
     let spec = WavSpec {
@@ -26,52 +28,51 @@ pub fn start_audio(
         bits_per_sample: 32,
         sample_format: hound::SampleFormat::Float,
     };
-    let wav_writer = Arc::new(Mutex::new(WavWriter::create(&file_path, spec).unwrap()));
 
-    let writer_clone = wav_writer.clone();
+    let writer = WavWriter::create(&file_path, spec).ok()?;
+    let shared_writer = Arc::new(Mutex::new(Some(writer)));
+
+    let writer_clone = Arc::clone(&shared_writer);
     let stream_config = config.clone().into();
     let new_stream = device
         .build_input_stream(
             &stream_config,
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                if let Ok(mut w) = writer_clone.lock() {
-                    for &sample in data {
-                        w.write_sample(sample).ok();
+                if let Ok(mut guard) = writer_clone.lock() {
+                    if let Some(writer) = guard.as_mut() {
+                        for &sample in data {
+                            writer.write_sample(sample).ok();
+                        }
                     }
                 }
             },
             |err| eprintln!("Stream error: {err}"),
             None,
         )
-        .unwrap();
+        .ok()?;
 
-    new_stream.play().unwrap();
-    Some(new_stream)
+    new_stream.play().ok()?;
+
+    Some((new_stream, shared_writer))
 }
 
-pub fn stop_audio(mut writer: Option<Arc<Mutex<WavWriter<BufWriter<File>>>>>) -> Option<f64> {
+fn stop_audio(writer: Option<SharedWriter>) -> Option<f64> {
     println!("Stopping recording...");
 
-    let duration = if let Some(w) = writer.take() {
-        if let Ok(w) = Arc::try_unwrap(w) {
-            let w = w.into_inner().unwrap();
-            let duration_seconds = w.duration() as f64 / w.spec().sample_rate as f64;
-            w.finalize().ok();
-            Some(duration_seconds)
-        } else {
-            None
-        }
-    } else {
-        None
-    };
+    let shared_writer = writer?;
+    let mut guard = shared_writer.lock().ok()?;
+    let writer = guard.take()?;
 
-    duration
+    let duration_seconds = writer.duration() as f64 / writer.spec().sample_rate as f64;
+    writer.finalize().ok()?;
+
+    Some(duration_seconds)
 }
 
 pub fn spawn_audio_thread(rx: Receiver<AudioCommand>) {
     thread::spawn(move || {
         let mut _stream: Option<cpal::Stream> = None;
-        let writer: Option<Arc<Mutex<WavWriter<BufWriter<File>>>>> = None;
+        let mut writer: Option<SharedWriter> = None;
 
         let host = cpal::default_host();
         println!("Audio host: {:?}", host.id());
@@ -93,14 +94,15 @@ pub fn spawn_audio_thread(rx: Receiver<AudioCommand>) {
         loop {
             match rx.recv() {
                 Ok(AudioCommand::Start { file_path }) => {
-                    _stream = start_audio(&config, &device, file_path);
+                    if let Some((new_stream, new_writer)) = start_audio(&config, &device, file_path)
+                    {
+                        _stream = Some(new_stream);
+                        writer = Some(new_writer);
+                    }
                 }
                 Ok(AudioCommand::Stop { response_tx }) => {
                     _stream = None;
-
-                    // TODO see if clone can be removed
-                    let duration = stop_audio(writer.clone());
-
+                    let duration = stop_audio(writer.take());
                     response_tx.send(duration).ok();
                 }
                 Err(_) => break,

@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 use std::collections::HashSet;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::Manager;
 use uuid::Uuid;
+
+use crate::shared::paths;
 
 fn tokenize_query(query: &str) -> Vec<String> {
     query
@@ -63,12 +64,7 @@ async fn ensure_tags_schema(pool: &SqlitePool) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_recording_path(filename: String, app: tauri::AppHandle) -> Result<String, String> {
-    let path = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("recordings")
-        .join(&filename);
+    let path = paths::recordings_dir(&app)?.join(&filename);
 
     path.to_str()
         .map(|s| s.to_string())
@@ -99,15 +95,6 @@ pub struct EntryTagRecord {
     pub tag_name: String,
     pub tag_created_at: i64,
 }
-
-#[derive(Clone, Serialize, Deserialize, FromRow)]
-pub struct TranscriptSegment {}
-
-#[tauri::command]
-pub async fn get_transcript_segments(entry_id: String) {}
-
-#[tauri::command]
-pub async fn get_segment_at_time(entry_id: String, time_ms: i64) {}
 
 #[tauri::command]
 pub async fn get_entries(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<Entry>, String> {
@@ -371,12 +358,7 @@ pub async fn delete_entry(
         .map_err(|e| e.to_string())?;
 
     if let Some(entry) = entry {
-        let file_path = app
-            .path()
-            .app_data_dir()
-            .map_err(|e| e.to_string())?
-            .join("recordings")
-            .join(&entry.filename);
+        let file_path = paths::recordings_dir(&app)?.join(&entry.filename);
 
         if file_path.exists() {
             std::fs::remove_file(&file_path).map_err(|e| e.to_string())?;

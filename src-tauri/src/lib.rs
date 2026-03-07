@@ -1,7 +1,5 @@
-mod audio;
-mod commands;
-mod db;
-mod transcription;
+mod features;
+mod shared;
 
 use std::sync::{
     mpsc::{self, Sender},
@@ -9,8 +7,8 @@ use std::sync::{
 };
 use tauri::Manager;
 
-use crate::audio::AudioCommand;
-use crate::commands::RecordingInfo;
+use crate::features::recorder::audio_engine::AudioCommand;
+use crate::features::recorder::types::RecordingInfo;
 
 pub struct AppState {
     pub command_tx: Sender<AudioCommand>,
@@ -21,7 +19,7 @@ pub struct AppState {
 pub fn run() {
     let (tx, rx) = mpsc::channel::<AudioCommand>();
 
-    audio::spawn_audio_thread(rx);
+    features::recorder::spawn_audio_thread(rx);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -33,7 +31,7 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             tauri::async_runtime::block_on(async {
-                let pool = db::init(&handle)
+                let pool = shared::db::init(&handle)
                     .await
                     .expect("Failed to initialize database");
                 handle.manage(pool);
@@ -41,19 +39,17 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::start_recording,
-            commands::stop_recording,
-            commands::get_entries,
-            commands::query_entries,
-            commands::get_recording_path,
-            commands::delete_entry,
-            commands::get_transcript_segments,
-            commands::get_segment_at_time,
-            commands::list_tags,
-            commands::create_tag,
-            commands::delete_tag,
-            commands::set_entry_tags,
-            commands::get_entry_tags
+            features::recorder::commands::start_recording,
+            features::recorder::commands::stop_recording,
+            features::recordings::commands::get_entries,
+            features::recordings::commands::query_entries,
+            features::recordings::commands::get_recording_path,
+            features::recordings::commands::delete_entry,
+            features::recordings::commands::list_tags,
+            features::recordings::commands::create_tag,
+            features::recordings::commands::delete_tag,
+            features::recordings::commands::set_entry_tags,
+            features::recordings::commands::get_entry_tags
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
