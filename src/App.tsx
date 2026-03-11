@@ -27,7 +27,7 @@ function App() {
 
   return (
     <div className="h-screen flex">
-      <aside className="w-80 border-l bg-gray-50">
+      <aside className="w-80 border-r bg-light-50">
         <RecordingsSidebar
           entries={entries}
           totalEntries={totalEntries}

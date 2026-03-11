@@ -1,4 +1,5 @@
 import { Entry, Tag } from "../../model/types";
+import { Typography } from "../../../../shared/ui/Typography";
 import { EntryList } from "../EntryList";
 import { EntryTagEditor } from "../EntryTagEditor";
 import { RecordingsSearch } from "../RecordingsSearch";
@@ -60,8 +61,10 @@ export function RecordingsSidebar({
 
   return (
     <div className="h-full flex flex-col">
-      <h2 className="text-lg font-bold p-4 border-b">Recordings ({entries.length}/{totalEntries})</h2>
-      <div className="p-3 border-b bg-gray-50">
+      <Typography variant="h4" as="h2" className="p-4 border-b">
+        Recordings ({entries.length}/{totalEntries})
+      </Typography>
+      <div className="p-3 border-b bg-light-50">
         <RecordingsSearch
           value={searchQuery}
           onChange={(value) => {
@@ -69,7 +72,11 @@ export function RecordingsSidebar({
             onSearchQueryChange(value);
           }}
         />
-        {errorMessage && <p className="mt-2 text-xs text-red-600">{errorMessage}</p>}
+        {errorMessage && (
+          <Typography variant="caption" as="p" className="mt-2 text-red-600">
+            {errorMessage}
+          </Typography>
+        )}
         <TagManager
           tags={tags}
           selectedFilterTagIds={selectedFilterTagIds}
