@@ -7,8 +7,8 @@ interface UseEntryListItemParams {
 }
 
 export function useEntryListItem({ entry }: UseEntryListItemParams) {
-  const displayTitle = useMemo(() => entry.title || entry.filename.replace(".wav", ""), [
-    entry.filename,
+  const displayTitle = useMemo(() => entry.title || entry.display_name, [
+    entry.display_name,
     entry.title,
   ]);
   const createdAtLabel = useMemo(() => new Date(entry.created_at * 1000).toLocaleString(), [entry.created_at]);

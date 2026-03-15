@@ -5,21 +5,21 @@ use uuid::Uuid;
 
 use super::audio_engine::AudioCommand;
 use super::types::RecordingInfo;
-use crate::features::recordings::commands::Entry;
+use crate::features::recordings::commands::{ensure_today_folder, Entry};
 use crate::features::transcription;
 use crate::shared::paths;
 use crate::AppState;
 
-fn timestamp_filename(secs: i64) -> String {
-    let secs = secs as u64;
-    let days_since_epoch = secs / 86400;
-    let time_of_day = secs % 86400;
+fn timestamp_parts(secs: i64) -> (i32, u32, u32, u64, u64, u64) {
+    let secs_u = secs as u64;
+    let days_since_epoch = secs_u / 86400;
+    let time_of_day = secs_u % 86400;
 
     let hours = time_of_day / 3600;
     let minutes = (time_of_day % 3600) / 60;
     let seconds = time_of_day % 60;
 
-    let mut year = 1970;
+    let mut year: i32 = 1970;
     let mut remaining_days = days_since_epoch as i32;
 
     loop {
@@ -51,18 +51,31 @@ fn timestamp_filename(secs: i64) -> String {
         31,
     ];
 
-    let mut month = 0;
+    let mut month: u32 = 0;
     for (i, &days) in days_in_months.iter().enumerate() {
         if remaining_days < days {
-            month = i + 1;
+            month = (i + 1) as u32;
             break;
         }
         remaining_days -= days;
     }
-    let day = remaining_days + 1;
+    let day = (remaining_days + 1) as u32;
 
+    (year, month, day, hours, minutes, seconds)
+}
+
+fn storage_path_from_timestamp(id: &str, secs: i64) -> String {
+    let (year, month, day, hours, minutes, seconds) = timestamp_parts(secs);
     format!(
-        "{:04}-{:02}-{:02}_{:02}-{:02}-{:02}.wav",
+        "{:04}/{:02}/{:02}/{}_{:02}-{:02}-{:02}.wav",
+        year, month, day, id, hours, minutes, seconds
+    )
+}
+
+fn display_name_from_timestamp(secs: i64) -> String {
+    let (year, month, day, hours, minutes, seconds) = timestamp_parts(secs);
+    format!(
+        "{:04}-{:02}-{:02}_{:02}-{:02}-{:02}",
         year, month, day, hours, minutes, seconds
     )
 }
@@ -77,17 +90,22 @@ pub fn start_recording(
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs() as i64;
-    let filename = timestamp_filename(created_at);
+
+    let storage_path = storage_path_from_timestamp(&id, created_at);
+    let display_name = display_name_from_timestamp(created_at);
 
     let recordings_dir = paths::recordings_dir(&app)?;
-    std::fs::create_dir_all(&recordings_dir).map_err(|e| e.to_string())?;
+    let file_path = recordings_dir.join(&storage_path);
 
-    let file_path = recordings_dir.join(&filename);
+    if let Some(parent) = file_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
 
     let mut state = state.lock().unwrap();
     state.current_recording = Some(RecordingInfo {
         id: id.clone(),
-        filename: filename.clone(),
+        storage_path: storage_path.clone(),
+        display_name: display_name.clone(),
         created_at,
     });
     state
@@ -98,7 +116,8 @@ pub fn start_recording(
     println!("Started recording: {}", id);
     Ok(RecordingInfo {
         id,
-        filename,
+        storage_path,
+        display_name,
         created_at,
     })
 }
@@ -124,13 +143,17 @@ pub async fn stop_recording(
 
     if let Some(info) = info {
         let recordings_dir = paths::recordings_dir(&app)?;
-        let file_path = recordings_dir.join(&info.filename);
+        let file_path = recordings_dir.join(&info.storage_path);
+
+        let folder_id = ensure_today_folder(info.created_at, pool.inner()).await?;
 
         sqlx::query(
-            "INSERT INTO entries (id, filename, created_at, duration_seconds) VALUES (?, ?, ?, ?)",
+            "INSERT INTO entries (id, folder_id, storage_path, display_name, created_at, duration_seconds) VALUES (?, ?, ?, ?, ?, ?)",
         )
         .bind(&info.id)
-        .bind(&info.filename)
+        .bind(&folder_id)
+        .bind(&info.storage_path)
+        .bind(&info.display_name)
         .bind(info.created_at)
         .bind(duration_seconds)
         .execute(pool.inner())
@@ -143,7 +166,9 @@ pub async fn stop_recording(
 
         Ok(Some(Entry {
             id: info.id,
-            filename: info.filename,
+            folder_id,
+            storage_path: info.storage_path,
+            display_name: info.display_name,
             created_at: info.created_at,
             duration_seconds,
             transcript: None,

@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 import argparse
-import math
 import os
 import random
 import sqlite3
-import struct
 import uuid
 import wave
 from datetime import datetime, timedelta, timezone
@@ -44,37 +42,35 @@ def default_app_dir() -> Path:
 def ensure_schema(cursor: sqlite3.Cursor) -> None:
     cursor.executescript(
         """
+        CREATE TABLE IF NOT EXISTS folders (
+          id TEXT PRIMARY KEY,
+          parent_id TEXT REFERENCES folders(id) ON DELETE RESTRICT,
+          name TEXT NOT NULL,
+          normalized_name TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_folders_sibling_name
+          ON folders(COALESCE(parent_id, ''), normalized_name);
+
+        CREATE INDEX IF NOT EXISTS idx_folders_parent_id ON folders(parent_id);
+
+        INSERT OR IGNORE INTO folders (id, parent_id, name, normalized_name, created_at, updated_at)
+          VALUES ('root', NULL, 'Root', 'root', 0, 0);
+
         CREATE TABLE IF NOT EXISTS entries (
           id TEXT PRIMARY KEY,
-          filename TEXT NOT NULL,
+          folder_id TEXT NOT NULL REFERENCES folders(id) ON DELETE RESTRICT,
+          storage_path TEXT NOT NULL,
+          display_name TEXT NOT NULL,
           created_at INTEGER NOT NULL,
           duration_seconds REAL,
           title TEXT
         );
 
-        CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
-          title,
-          filename,
-          content='entries',
-          content_rowid='rowid'
-        );
-
-        CREATE TRIGGER IF NOT EXISTS entries_ai AFTER INSERT ON entries BEGIN
-          INSERT INTO entries_fts(rowid, title, filename)
-          VALUES (NEW.rowid, NEW.title, NEW.filename);
-        END;
-
-        CREATE TRIGGER IF NOT EXISTS entries_ad AFTER DELETE ON entries BEGIN
-          INSERT INTO entries_fts(entries_fts, rowid, title, filename)
-          VALUES ('delete', OLD.rowid, OLD.title, OLD.filename);
-        END;
-
-        CREATE TRIGGER IF NOT EXISTS entries_au AFTER UPDATE ON entries BEGIN
-          INSERT INTO entries_fts(entries_fts, rowid, title, filename)
-          VALUES ('delete', OLD.rowid, OLD.title, OLD.filename);
-          INSERT INTO entries_fts(rowid, title, filename)
-          VALUES (NEW.rowid, NEW.title, NEW.filename);
-        END;
+        CREATE INDEX IF NOT EXISTS idx_entries_folder_id ON entries(folder_id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_entries_storage_path ON entries(storage_path);
 
         CREATE TABLE IF NOT EXISTS transcript_segments (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -114,33 +110,50 @@ def ensure_schema(cursor: sqlite3.Cursor) -> None:
     )
 
 
-def make_wav(path: Path, seconds: float, seed: int) -> None:
-    rnd = random.Random(seed)
-    sample_rate = 16000
+def make_wav(path: Path, seconds: float, _seed: int) -> None:
+    sample_rate = 8000
     sample_count = int(seconds * sample_rate)
+    silence = b"\x00\x00" * sample_count
 
     with wave.open(str(path), "wb") as wav_file:
         wav_file.setnchannels(1)
         wav_file.setsampwidth(2)
         wav_file.setframerate(sample_rate)
-
-        frames = bytearray()
-        base_freq = rnd.uniform(150.0, 260.0)
-
-        for i in range(sample_count):
-            t = i / sample_rate
-            freq = base_freq + 30.0 * math.sin(2.0 * math.pi * 0.2 * t)
-            sample = 0.22 * math.sin(2.0 * math.pi * freq * t)
-            sample += 0.04 * math.sin(2.0 * math.pi * (freq * 2.0) * t)
-            sample = max(-1.0, min(1.0, sample))
-            frames += struct.pack("<h", int(sample * 32767))
-
-        wav_file.writeframes(frames)
+        wav_file.writeframes(silence)
 
 
 def transcript_parts(rnd: random.Random, count: int) -> list[str]:
     selection_count = max(2, min(6, count))
     return rnd.sample(SNIPPETS, k=selection_count)
+
+
+def find_or_create_folder(cursor: sqlite3.Cursor, parent_id: str, name: str, now: int) -> str:
+    normalized = name.strip().lower()
+    cursor.execute(
+        "SELECT id FROM folders WHERE parent_id = ? AND normalized_name = ? LIMIT 1",
+        (parent_id, normalized),
+    )
+    row = cursor.fetchone()
+    if row:
+        return row[0]
+
+    folder_id = str(uuid.uuid4())
+    cursor.execute(
+        "INSERT INTO folders (id, parent_id, name, normalized_name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (folder_id, parent_id, name, normalized, now, now),
+    )
+    return folder_id
+
+
+def ensure_date_folder(cursor: sqlite3.Cursor, dt: datetime, now: int) -> str:
+    year_name = f"{dt.year:04d}"
+    month_name = f"{dt.month:02d}"
+    day_name = f"{dt.day:02d}"
+
+    year_id = find_or_create_folder(cursor, "root", year_name, now)
+    month_id = find_or_create_folder(cursor, year_id, month_name, now)
+    day_id = find_or_create_folder(cursor, month_id, day_name, now)
+    return day_id
 
 
 def seed_fake_entries(app_dir: Path, count: int, append: bool, seed: int) -> None:
@@ -156,17 +169,18 @@ def seed_fake_entries(app_dir: Path, count: int, append: bool, seed: int) -> Non
     ensure_schema(cursor)
 
     if not append:
-        cursor.execute("SELECT filename FROM entries WHERE title LIKE 'FAKE:%'")
+        cursor.execute("SELECT storage_path FROM entries WHERE title LIKE 'FAKE:%'")
         stale_files = [row[0] for row in cursor.fetchall()]
 
         cursor.execute("DELETE FROM entries WHERE title LIKE 'FAKE:%'")
 
-        for filename in stale_files:
-            fake_file = recordings_dir / filename
+        for storage_path in stale_files:
+            fake_file = recordings_dir / storage_path
             if fake_file.exists() and fake_file.is_file():
                 fake_file.unlink()
 
     base_now = datetime.now(timezone.utc)
+    now_ts = int(base_now.timestamp())
     rnd = random.Random(seed)
 
     for i in range(count):
@@ -174,16 +188,21 @@ def seed_fake_entries(app_dir: Path, count: int, append: bool, seed: int) -> Non
         created_at_dt = base_now - timedelta(hours=i * 6)
         created_at = int(created_at_dt.timestamp())
 
-        duration_seconds = round(rnd.uniform(18.0, 140.0), 2)
-        filename = f"fake_{created_at}_{i:03d}.wav"
+        folder_id = ensure_date_folder(cursor, created_at_dt, now_ts)
 
-        make_wav(recordings_dir / filename, duration_seconds, seed + i)
+        duration_seconds = round(rnd.uniform(18.0, 140.0), 2)
+        storage_path = f"{created_at_dt.year:04d}/{created_at_dt.month:02d}/{created_at_dt.day:02d}/{entry_id}_{created_at_dt.hour:02d}-{created_at_dt.minute:02d}-{created_at_dt.second:02d}.wav"
+        display_name = f"{created_at_dt.year:04d}-{created_at_dt.month:02d}-{created_at_dt.day:02d}_{created_at_dt.hour:02d}-{created_at_dt.minute:02d}-{created_at_dt.second:02d}"
+
+        file_dir = recordings_dir / f"{created_at_dt.year:04d}/{created_at_dt.month:02d}/{created_at_dt.day:02d}"
+        file_dir.mkdir(parents=True, exist_ok=True)
+        make_wav(recordings_dir / storage_path, duration_seconds, seed + i)
 
         title = f"FAKE: {rnd.choice(TOPICS)}"
         segments = transcript_parts(rnd, rnd.randint(3, 5))
         cursor.execute(
-            "INSERT INTO entries (id, filename, created_at, duration_seconds, title) VALUES (?, ?, ?, ?, ?)",
-            (entry_id, filename, created_at, duration_seconds, title),
+            "INSERT INTO entries (id, folder_id, storage_path, display_name, created_at, duration_seconds, title) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (entry_id, folder_id, storage_path, display_name, created_at, duration_seconds, title),
         )
 
         total_ms = int(duration_seconds * 1000)

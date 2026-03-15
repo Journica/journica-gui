@@ -17,6 +17,10 @@ pub async fn init(app: &AppHandle) -> Result<SqlitePool, Box<dyn std::error::Err
         .connect(&db_url)
         .await?;
 
+    sqlx::query("PRAGMA foreign_keys = ON")
+        .execute(&pool)
+        .await?;
+
     sqlx::migrate!("./migrations").run(&pool).await?;
 
     Ok(pool)

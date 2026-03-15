@@ -28,7 +28,7 @@ export function useAudioPlayer(onError?: (message: string) => void) {
     }
 
     try {
-      const path = await getRecordingPath(entry.filename);
+      const path = await getRecordingPath(entry.storage_path);
 
       clearObjectUrl();
 

@@ -49,7 +49,14 @@ pub fn run() {
             features::recordings::commands::create_tag,
             features::recordings::commands::delete_tag,
             features::recordings::commands::set_entry_tags,
-            features::recordings::commands::get_entry_tags
+            features::recordings::commands::get_entry_tags,
+            features::recordings::commands::list_folders,
+            features::recordings::commands::create_folder,
+            features::recordings::commands::rename_folder,
+            features::recordings::commands::move_folder,
+            features::recordings::commands::delete_folder,
+            features::recordings::commands::move_entry,
+            features::recordings::commands::rename_entry
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

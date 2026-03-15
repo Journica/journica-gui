@@ -4,9 +4,19 @@ export interface Tag {
   created_at: number;
 }
 
+export interface Folder {
+  id: string;
+  parent_id: string | null;
+  name: string;
+  created_at: number;
+  updated_at: number;
+}
+
 export interface Entry {
   id: string;
-  filename: string;
+  folder_id: string;
+  storage_path: string;
+  display_name: string;
   created_at: number;
   duration_seconds: number | null;
   transcript: string | null;
@@ -16,7 +26,9 @@ export interface Entry {
 
 export interface EntryRow {
   id: string;
-  filename: string;
+  folder_id: string;
+  storage_path: string;
+  display_name: string;
   created_at: number;
   duration_seconds: number | null;
   transcript: string | null;
