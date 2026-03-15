@@ -1,69 +1,50 @@
-import { RecordingControl } from "./features/recorder";
-import { RecordingsSidebar, ScriptPanel, useRecordingsPanel } from "./features/recordings";
+import { useState } from "react";
+import { useRecordingSession } from "./features/recorder";
+import { NavigationSidebar, useFolderTree } from "./features/navigation";
 
 function App() {
+  const [searchQuery, setSearchQuery] = useState("");
+
   const {
-    entries,
-    totalEntries,
-    tags,
-    loading,
-    loadingMore,
-    hasMore,
-    searchQuery,
-    setSearchQuery,
-    selectedFilterTagIds,
-    setSelectedFilterTagIds,
-    loadEntries,
-    loadMore,
-    deleteEntry,
-    createTag,
-    deleteTag,
-    setEntryTags,
-    selectedEntryId,
-    setSelectedEntryId,
-    selectedEntry,
-    scriptMessage,
-  } = useRecordingsPanel();
+    journalNodes,
+    expandedIds,
+    toggleExpanded,
+    selectedFolderId,
+    setSelectedFolderId,
+    reloadFolders,
+  } = useFolderTree();
+
+  const { isRecording, toggleRecording } = useRecordingSession(() => {
+    void reloadFolders();
+  });
+
+  const handleNewEntry = () => {
+    void toggleRecording();
+  };
 
   return (
-    <div className="h-screen flex">
-      <aside className="w-80 border-r bg-light-50">
-        <RecordingsSidebar
-          entries={entries}
-          totalEntries={totalEntries}
-          tags={tags}
-          selectedEntry={selectedEntry}
-          onDeleteEntry={deleteEntry}
-          onCreateTag={createTag}
-          onDeleteTag={deleteTag}
-          onSetEntryTags={setEntryTags}
-          onSelectEntry={setSelectedEntryId}
-          selectedEntryId={selectedEntryId}
-          searchQuery={searchQuery}
-          onSearchQueryChange={(value) => {
-            setSearchQuery(value);
-          }}
-          selectedFilterTagIds={selectedFilterTagIds}
-          onSelectedFilterTagIdsChange={(tagIds) => {
-            setSelectedFilterTagIds(tagIds);
-          }}
-          onLoadMore={loadMore}
-          loading={loading}
-          loadingMore={loadingMore}
-          hasMore={hasMore}
-        />
-      </aside>
-      <main className="flex-1 flex flex-col min-w-0">
-        <div className="border-b p-4 bg-white">
-          <RecordingControl onStop={loadEntries} />
-        </div>
-        <ScriptPanel
-          selectedEntry={selectedEntry}
-          searchQuery={searchQuery}
-          scriptMessage={scriptMessage}
-        />
-      </main>
+    <div className="h-screen flex justify-center bg-white">
+      <div className="flex w-[960px] h-full">
+        <aside className="w-[204px] shrink-0">
+          <NavigationSidebar
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            isRecording={isRecording}
+            onNewEntry={handleNewEntry}
+            journalNodes={journalNodes}
+            expandedIds={expandedIds}
+            selectedFolderId={selectedFolderId}
+            onToggleExpanded={toggleExpanded}
+            onSelectFolder={setSelectedFolderId}
+          />
+        </aside>
 
+        <div className="w-[280px] shrink-0 border-r bg-red-200">
+        </div>
+
+        <main className="flex-1 min-w-0 bg-green-200">
+        </main>
+      </div>
     </div>
   );
 }
