@@ -152,6 +152,7 @@ pub struct Folder {
     pub name: String,
     pub created_at: i64,
     pub updated_at: i64,
+    pub entry_count: i64,
 }
 
 #[derive(Clone, Serialize, Deserialize, FromRow)]
@@ -485,10 +486,24 @@ pub async fn list_folders(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<Fold
             SELECT p.id, p.parent_id, p.name, p.created_at, p.updated_at
             FROM folders p
             JOIN folders_with_entries c ON c.parent_id = p.id
+        ),
+        folder_descendants(ancestor_id, descendant_id) AS (
+            SELECT id, id
+            FROM folders_with_entries
+
+            UNION ALL
+
+            SELECT fd.ancestor_id, f.id
+            FROM folder_descendants fd
+            JOIN folders f ON f.parent_id = fd.descendant_id
         )
-        SELECT DISTINCT id, parent_id, name, created_at, updated_at
-        FROM folders_with_entries
-        ORDER BY name COLLATE NOCASE ASC",
+        SELECT DISTINCT fwe.id, fwe.parent_id, fwe.name, fwe.created_at, fwe.updated_at,
+               COUNT(e.id) AS entry_count
+        FROM folders_with_entries fwe
+        LEFT JOIN folder_descendants fd ON fd.ancestor_id = fwe.id
+        LEFT JOIN entries e ON e.folder_id = fd.descendant_id
+        GROUP BY fwe.id, fwe.parent_id, fwe.name, fwe.created_at, fwe.updated_at
+        ORDER BY fwe.name COLLATE NOCASE ASC",
     )
     .fetch_all(pool.inner())
     .await
@@ -531,6 +546,7 @@ pub async fn create_folder(
         name: trimmed_name,
         created_at: now,
         updated_at: now,
+        entry_count: 0,
     })
 }
 

@@ -1,3 +1,4 @@
+import { Typography } from "../../../../shared/ui/Typography";
 import { FolderNode } from "../../hooks/useFolderTree";
 import { ChevronRightIcon } from "../icons/ChevronRightIcon";
 
@@ -50,6 +51,7 @@ export function JournalTree({
         const hasChildren = node.children.length > 0;
         const canExpand = hasChildren && depth === 0;
         const label = formatNodeLabel(node.folder.name, depth);
+        const showEntryCount = depth === 1;
 
         return (
           <li key={node.folder.id}>
@@ -72,8 +74,15 @@ export function JournalTree({
                 </span>
               )}
               {!canExpand && <span className="w-4" />}
-              <span style={{fontWeight: '400'}} className="truncate block w-full text-[18px] font-normal leading-[19.5px] tracking-[-0.076px] text-dark-90">
-                {label}
+              <span className="flex w-full items-center justify-between gap-2">
+                <span style={{ fontWeight: "400" }} className="truncate block text-[18px] font-normal leading-[19.5px] tracking-[-0.076px] text-dark-90">
+                  {label}
+                </span>
+                {showEntryCount && (
+                  <Typography variant="caption" className="uppercase font-normal leading-3.75 text-dark-30">
+                    {node.folder.entry_count}
+                  </Typography>
+                )}
               </span>
             </button>
             {isExpanded && canExpand && (

@@ -10,6 +10,7 @@ export interface Folder {
   name: string;
   created_at: number;
   updated_at: number;
+  entry_count: number;
 }
 
 export interface Entry {
