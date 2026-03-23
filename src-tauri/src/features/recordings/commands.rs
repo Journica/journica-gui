@@ -476,20 +476,9 @@ pub async fn delete_entry(
 #[tauri::command]
 pub async fn list_folders(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<Folder>, String> {
     let folders = sqlx::query_as::<_, Folder>(
-        "WITH RECURSIVE folders_with_entries(id, parent_id, name, created_at, updated_at) AS (
-            SELECT f.id, f.parent_id, f.name, f.created_at, f.updated_at
-            FROM folders f
-            JOIN (SELECT DISTINCT folder_id FROM entries) e ON e.folder_id = f.id
-
-            UNION
-
-            SELECT p.id, p.parent_id, p.name, p.created_at, p.updated_at
-            FROM folders p
-            JOIN folders_with_entries c ON c.parent_id = p.id
-        ),
-        folder_descendants(ancestor_id, descendant_id) AS (
+        "WITH RECURSIVE folder_descendants(ancestor_id, descendant_id) AS (
             SELECT id, id
-            FROM folders_with_entries
+            FROM folders
 
             UNION ALL
 
@@ -497,13 +486,13 @@ pub async fn list_folders(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<Fold
             FROM folder_descendants fd
             JOIN folders f ON f.parent_id = fd.descendant_id
         )
-        SELECT DISTINCT fwe.id, fwe.parent_id, fwe.name, fwe.created_at, fwe.updated_at,
+        SELECT f.id, f.parent_id, f.name, f.created_at, f.updated_at,
                COUNT(e.id) AS entry_count
-        FROM folders_with_entries fwe
-        LEFT JOIN folder_descendants fd ON fd.ancestor_id = fwe.id
+        FROM folders f
+        LEFT JOIN folder_descendants fd ON fd.ancestor_id = f.id
         LEFT JOIN entries e ON e.folder_id = fd.descendant_id
-        GROUP BY fwe.id, fwe.parent_id, fwe.name, fwe.created_at, fwe.updated_at
-        ORDER BY fwe.name COLLATE NOCASE ASC",
+        GROUP BY f.id, f.parent_id, f.name, f.created_at, f.updated_at
+        ORDER BY f.name COLLATE NOCASE ASC",
     )
     .fetch_all(pool.inner())
     .await

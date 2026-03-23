@@ -1,60 +1,46 @@
-import { useCallback } from "react";
-import { TreeNodeRenderOpts } from "../../../shared/ui/TreeView";
-import { Folder } from "../../recordings/model/types";
+import { useCallback, useMemo } from "react";
+import { FolderNode } from "./useFolderTree";
 import { useNewFolderModal } from "./useNewFolderModal";
-import { ChevronRightIcon } from "../ui/icons/ChevronRightIcon";
-import { FolderIcon } from "../ui/icons/FolderIcon";
 
 interface Params {
   selectedFolderId: string | null;
+  userNodes: FolderNode[];
   onSelectFolder: (folderId: string) => void;
   onCreateFolder: (name: string) => Promise<void>;
 }
 
-export function useNavigationSidebar({ selectedFolderId, onSelectFolder, onCreateFolder }: Params) {
+function flattenNodes(nodes: FolderNode[]): FolderNode[] {
+  const result: FolderNode[] = [];
+
+  for (const node of nodes) {
+    result.push(node);
+    result.push(...flattenNodes(node.children));
+  }
+
+  return result;
+}
+
+export function useNavigationSidebar({ selectedFolderId, userNodes, onSelectFolder, onCreateFolder }: Params) {
   const newFolderModal = useNewFolderModal({ onCreateFolder });
 
-  const renderUserFolderNode = useCallback(
-    ({ node, isExpanded, hasChildren, toggle }: TreeNodeRenderOpts<Folder>) => {
-      const isSelected = selectedFolderId === node.id;
+  const flatUserNodes = useMemo(() => flattenNodes(userNodes), [userNodes]);
 
-      return (
-        <button
-          className={`w-full text-left px-2 py-1 text-sm rounded flex items-center gap-1 ${isSelected
-            ? "bg-light-50 font-semibold"
-            : "hover:bg-light-50"
-            }`}
-          onClick={() => {
-            if (hasChildren) {
-              toggle();
-            }
-            onSelectFolder(node.id);
-          }}
-        >
-          {hasChildren ? (
-            <span className="w-4 h-4 flex items-center justify-center select-none">
-              <ChevronRightIcon expanded={isExpanded} />
-            </span>
-          ) : (
-            <span className="w-4" />
-          )}
-          <span className="flex w-full items-center gap-1">
-            <FolderIcon />
-            <span
-              style={{ fontWeight: "400" }}
-              className="truncate block text-[18px] font-normal leading-[19.5px] tracking-[-0.076px] text-dark-90"
-            >
-              {node.data.name}
-            </span>
-          </span>
-        </button>
-      );
+  const onSelectUserFolder = useCallback(
+    (folderId: string) => {
+      onSelectFolder(folderId);
     },
-    [selectedFolderId, onSelectFolder],
+    [onSelectFolder],
+  );
+
+  const isUserFolderSelected = useCallback(
+    (folderId: string) => selectedFolderId === folderId,
+    [selectedFolderId],
   );
 
   return {
     newFolderModal,
-    renderUserFolderNode,
+    flatUserNodes,
+    onSelectUserFolder,
+    isUserFolderSelected,
   };
 }

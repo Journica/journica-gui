@@ -8,14 +8,17 @@ export function useNewFolderModal({ onCreateFolder }: Params) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const open = useCallback(() => {
     setName("");
+    setErrorMessage(null);
     setIsOpen(true);
   }, []);
 
   const close = useCallback(() => {
     if (isSaving) return;
+    setErrorMessage(null);
     setIsOpen(false);
   }, [isSaving]);
 
@@ -25,9 +28,23 @@ export function useNewFolderModal({ onCreateFolder }: Params) {
 
     try {
       setIsSaving(true);
+      setErrorMessage(null);
       await onCreateFolder(trimmed);
       setIsOpen(false);
       setName("");
+    } catch (error) {
+      const rawMessage =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+            ? error.message
+            : "Failed to create folder";
+
+      if (/idx_folders_sibling_name|unique constraint failed/i.test(rawMessage)) {
+        setErrorMessage("Folder already exists");
+      } else {
+        setErrorMessage("Failed to create folder");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -35,7 +52,10 @@ export function useNewFolderModal({ onCreateFolder }: Params) {
 
   const handleNameChange = useCallback((value: string) => {
     setName(value);
-  }, []);
+    if (errorMessage) {
+      setErrorMessage(null);
+    }
+  }, [errorMessage]);
 
   const handleInputKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
@@ -50,6 +70,7 @@ export function useNewFolderModal({ onCreateFolder }: Params) {
     isOpen,
     name,
     isSaving,
+    errorMessage,
     canSave: !isSaving && name.trim().length > 0,
     open,
     close,

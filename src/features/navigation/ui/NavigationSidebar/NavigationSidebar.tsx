@@ -1,11 +1,10 @@
-import { TreeView } from "../../../../shared/ui/TreeView";
 import { Typography } from "../../../../shared/ui/Typography";
 import { FolderNode } from "../../hooks/useFolderTree";
 import { useNavigationSidebar } from "../../hooks/useNavigationSidebar";
-import { Folder } from "../../../recordings/model/types";
 import { JournalTree } from "../JournalTree";
 import { NewFolderModal } from "../NewFolderModal";
 import { NavigationSearch } from "../NavigationSearch";
+import { FolderIcon } from "../icons/FolderIcon";
 import { PlusIcon } from "../icons/PlusIcon";
 
 interface Props {
@@ -37,8 +36,9 @@ export function NavigationSidebar({
   onSelectFolder,
   onCreateFolder,
 }: Props) {
-  const { newFolderModal, renderUserFolderNode } = useNavigationSidebar({
+  const { newFolderModal, flatUserNodes, onSelectUserFolder, isUserFolderSelected } = useNavigationSidebar({
     selectedFolderId,
+    userNodes,
     onSelectFolder,
     onCreateFolder,
   });
@@ -62,12 +62,9 @@ export function NavigationSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 pb-3">
-        <div className="mb-3 [&>*]:text-[15px] flex justify-between text-center ">
+        <div className="[&>*]:text-[15px] flex justify-between text-center ">
           <Typography variant="caption" className="uppercase font-normal leading-3.75 text-dark-30">
             Journal
-          </Typography>
-          <Typography variant="caption" className="uppercase font-normal leading-3.75 text-dark-30">
-            {totalEntries}
           </Typography>
         </div>
         <JournalTree
@@ -87,13 +84,40 @@ export function NavigationSidebar({
           <PlusIcon className="cursor-pointer text-dark-30" onClick={newFolderModal.open} />
         </div>
 
-        <TreeView<Folder>
-          nodes={userNodes}
-          expandedIds={expandedIds}
-          onToggleExpanded={onToggleExpanded}
-          renderNode={renderUserFolderNode}
-          childClassName="ml-3"
-        />
+        <ul>
+          {flatUserNodes.map((node) => {
+            const isSelected = isUserFolderSelected(node.id);
+
+            return (
+              <li key={node.id}>
+                <button
+                  className={`w-full text-left py-1 text-sm rounded flex items-center gap-1 ${isSelected
+                    ? "bg-light-50 font-semibold"
+                    : "hover:bg-light-50"
+                    }`}
+                  onClick={() => {
+                    onSelectUserFolder(node.id);
+                  }}
+                >
+                  <span className="flex w-full items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-1">
+                      <FolderIcon />
+                      <span
+                        style={{ fontWeight: "400" }}
+                        className="truncate block text-[18px] font-normal leading-[19.5px] tracking-[-0.076px] text-dark-90"
+                      >
+                        {node.data.name}
+                      </span>
+                    </span>
+                    <Typography variant="caption" className="uppercase font-normal leading-3.75 text-dark-30 pr-2">
+                      {node.data.entry_count}
+                    </Typography>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
       <NewFolderModal
@@ -101,6 +125,7 @@ export function NavigationSidebar({
         value={newFolderModal.name}
         isSaving={newFolderModal.isSaving}
         canSave={newFolderModal.canSave}
+        errorMessage={newFolderModal.errorMessage}
         onValueChange={newFolderModal.handleNameChange}
         onInputKeyDown={newFolderModal.handleInputKeyDown}
         onClose={newFolderModal.close}

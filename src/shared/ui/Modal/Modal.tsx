@@ -13,9 +13,9 @@ export function Modal({ isOpen, title, onClose, children, footer, ariaLabel }: P
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-90/25 px-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-80/30 px-4" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-xl border border-light-base bg-white p-4 shadow-lg"
+        className="w-full max-w-md rounded-xl border border-light-base bg-light-20 p-4 shadow-lg"
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel ?? title}

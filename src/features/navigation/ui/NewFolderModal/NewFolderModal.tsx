@@ -1,4 +1,5 @@
 import { KeyboardEvent } from "react";
+import { Input } from "../../../../shared/ui/Input";
 import { Modal } from "../../../../shared/ui/Modal";
 
 interface Props {
@@ -6,13 +7,24 @@ interface Props {
   value: string;
   isSaving: boolean;
   canSave: boolean;
+  errorMessage: string | null;
   onValueChange: (value: string) => void;
   onInputKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
   onClose: () => void;
   onSave: () => void;
 }
 
-export function NewFolderModal({ isOpen, value, isSaving, canSave, onValueChange, onInputKeyDown, onClose, onSave }: Props) {
+export function NewFolderModal({
+  isOpen,
+  value,
+  isSaving,
+  canSave,
+  errorMessage,
+  onValueChange,
+  onInputKeyDown,
+  onClose,
+  onSave,
+}: Props) {
   const footer = (
     <>
       <button
@@ -24,7 +36,7 @@ export function NewFolderModal({ isOpen, value, isSaving, canSave, onValueChange
       </button>
       <button
         type="button"
-        className="cursor-pointer rounded-lg bg-dark-90 px-3 py-1.5 text-[13px] font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        className="cursor-pointer rounded-lg bg-dark-90 px-3 py-1.5 text-[13px] font-medium text-light-10 hover:bg-dark-80 disabled:cursor-not-allowed disabled:bg-dark-20 disabled:text-light-40"
         onClick={onSave}
         disabled={!canSave}
       >
@@ -35,15 +47,16 @@ export function NewFolderModal({ isOpen, value, isSaving, canSave, onValueChange
 
   return (
     <Modal isOpen={isOpen} title="New Folder" onClose={onClose} footer={footer} ariaLabel="New folder">
-        <input
-          autoFocus
-          type="text"
-          value={value}
-          onChange={(event) => onValueChange(event.target.value)}
-          onKeyDown={onInputKeyDown}
-          placeholder="Folder name"
-          className="w-full rounded-lg border border-dark-20 px-3 py-2 text-[14px] leading-5 text-dark-90 outline-none placeholder:text-dark-20 focus:border-dark-30"
-        />
+      <Input
+        value={value}
+        onChange={onValueChange}
+        onKeyDown={onInputKeyDown}
+        placeholder="Folder name"
+        autoFocus
+        className="h-auto w-full gap-0 rounded-lg px-3 py-2"
+        inputClassName="text-dark-90"
+      />
+      {errorMessage && <p className="mt-2 text-[12px] leading-4 text-red-600">{errorMessage}</p>}
     </Modal>
   );
 }
