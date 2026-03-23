@@ -3,14 +3,28 @@
 
 @theme {
   --font-sans: "Manrope", "Segoe UI", sans-serif;
-  --color-light-20: #FAF9F5;
-  --color-light-50: #F3F0E7;
 
+  --color-light-10: #FAFDFC;
+  --color-light-20: #FAF9F5;
+  --color-light-30: #F8F6F0;
+  --color-light-40: #F5F3EB;
+  --color-light-50: #F3F0E7;
+  --color-light-60: #F0EDE2;
+  --color-light-70: #EEEADD;
+  --color-light-80: #EBE7D8;
+  --color-light-90: #E9E4D3;
+  --color-light-base: #E6E1CE;
+
+  --color-dark-base: #E6E1CE;
   --color-dark-10: #CFCBB9;
   --color-dark-20: #B8B4A5;
   --color-dark-30: #A19E90;
+  --color-dark-40: #8A877C;
+  --color-dark-50: #737167;
+  --color-dark-60: #5C5A52;
+  --color-dark-70: #45443E;
+  --color-dark-80: #2E2D29;
   --color-dark-90: #171715;
-
 }
 
 :root {

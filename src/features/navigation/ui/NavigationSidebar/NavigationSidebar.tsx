@@ -1,7 +1,12 @@
+import { TreeView } from "../../../../shared/ui/TreeView";
 import { Typography } from "../../../../shared/ui/Typography";
 import { FolderNode } from "../../hooks/useFolderTree";
+import { useNavigationSidebar } from "../../hooks/useNavigationSidebar";
+import { Folder } from "../../../recordings/model/types";
 import { JournalTree } from "../JournalTree";
+import { NewFolderModal } from "../NewFolderModal";
 import { NavigationSearch } from "../NavigationSearch";
+import { PlusIcon } from "../icons/PlusIcon";
 
 interface Props {
   searchQuery: string;
@@ -10,10 +15,12 @@ interface Props {
   onNewEntry: () => void;
   totalEntries: number;
   journalNodes: FolderNode[];
+  userNodes: FolderNode[];
   expandedIds: Set<string>;
   selectedFolderId: string | null;
   onToggleExpanded: (folderId: string) => void;
   onSelectFolder: (folderId: string) => void;
+  onCreateFolder: (name: string) => Promise<void>;
 }
 
 export function NavigationSidebar({
@@ -23,11 +30,19 @@ export function NavigationSidebar({
   onNewEntry,
   totalEntries,
   journalNodes,
+  userNodes,
   expandedIds,
   selectedFolderId,
   onToggleExpanded,
   onSelectFolder,
+  onCreateFolder,
 }: Props) {
+  const { newFolderModal, renderUserFolderNode } = useNavigationSidebar({
+    selectedFolderId,
+    onSelectFolder,
+    onCreateFolder,
+  });
+
   return (
     <div className="h-full flex flex-col bg-light-50 border-r">
       <div className="p-3">
@@ -47,7 +62,7 @@ export function NavigationSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 pb-3">
-        <div className="flex justify-between text-center pr-5">
+        <div className="mb-3 [&>*]:text-[15px] flex justify-between text-center ">
           <Typography variant="caption" className="uppercase font-normal leading-3.75 text-dark-30">
             Journal
           </Typography>
@@ -62,7 +77,37 @@ export function NavigationSidebar({
           onToggleExpanded={onToggleExpanded}
           onSelectFolder={onSelectFolder}
         />
+
+        <hr className="my-3 border-light-base" />
+
+        <div className="[&>*]:text-[15px] flex justify-between text-center">
+          <Typography variant="caption" className="uppercase font-normal leading-3.75 text-dark-30">
+            Folders
+          </Typography>
+          <PlusIcon className="cursor-pointer text-dark-30" onClick={newFolderModal.open} />
+        </div>
+
+        <TreeView<Folder>
+          nodes={userNodes}
+          expandedIds={expandedIds}
+          onToggleExpanded={onToggleExpanded}
+          renderNode={renderUserFolderNode}
+          childClassName="ml-3"
+        />
       </div>
+
+      <NewFolderModal
+        isOpen={newFolderModal.isOpen}
+        value={newFolderModal.name}
+        isSaving={newFolderModal.isSaving}
+        canSave={newFolderModal.canSave}
+        onValueChange={newFolderModal.handleNameChange}
+        onInputKeyDown={newFolderModal.handleInputKeyDown}
+        onClose={newFolderModal.close}
+        onSave={() => {
+          void newFolderModal.save();
+        }}
+      />
     </div>
   );
 }

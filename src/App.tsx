@@ -1,49 +1,24 @@
-import { useState } from "react";
-import { useRecordingSession } from "./features/recorder";
-import { NavigationSidebar, useFolderTree } from "./features/navigation";
-import { RecordingsSidebar, ScriptPanel, useRecordingsPanel } from "./features/recordings";
+import { NavigationSidebar } from "./features/navigation";
+import { RecordingsSidebar, ScriptPanel } from "./features/recordings";
+import { useAppController } from "./hooks/useAppController";
 
 function App() {
-  const [folderSearchQuery, setFolderSearchQuery] = useState("");
-
   const {
+    folderSearchQuery,
+    setFolderSearchQuery,
     journalNodes,
+    userNodes,
     expandedIds,
     toggleExpanded,
     selectedFolderId,
     setSelectedFolderId,
-    reloadFolders,
-  } = useFolderTree();
-
-  const { isRecording, toggleRecording } = useRecordingSession(() => {
-    void reloadFolders();
-  });
-
-  const {
-    entries,
-    totalEntries,
-    tags,
-    loading,
-    loadingMore,
-    hasMore,
-    searchQuery,
-    setSearchQuery,
-    selectedFilterTagIds,
-    setSelectedFilterTagIds,
-    loadMore,
-    deleteEntry,
-    createTag,
-    deleteTag,
-    setEntryTags,
-    selectedEntry,
-    selectedEntryId,
-    setSelectedEntryId,
-    scriptMessage,
-  } = useRecordingsPanel(selectedFolderId);
-
-  const handleNewEntry = () => {
-    void toggleRecording();
-  };
+    isRecording,
+    onNewEntry,
+    onCreateFolder,
+    onDeleteEntry,
+    onLoadMore,
+    recordingsPanel,
+  } = useAppController();
 
   return (
     <div className="min-h-screen bg-white">
@@ -53,46 +28,47 @@ function App() {
             searchQuery={folderSearchQuery}
             onSearchQueryChange={setFolderSearchQuery}
             isRecording={isRecording}
-            onNewEntry={handleNewEntry}
-            totalEntries={totalEntries}
+            onNewEntry={onNewEntry}
+            totalEntries={recordingsPanel.totalEntries}
             journalNodes={journalNodes}
+            userNodes={userNodes}
             expandedIds={expandedIds}
             selectedFolderId={selectedFolderId}
             onToggleExpanded={toggleExpanded}
             onSelectFolder={setSelectedFolderId}
+            onCreateFolder={onCreateFolder}
           />
         </aside>
 
         <div className="min-h-40 border-r md:min-w-72 md:basis-1/4">
           <RecordingsSidebar
-            entries={entries}
-            totalEntries={totalEntries}
-            tags={tags}
-            selectedEntry={selectedEntry}
-            selectedEntryId={selectedEntryId}
-            searchQuery={searchQuery}
-            selectedFilterTagIds={selectedFilterTagIds}
-            loading={loading}
-            loadingMore={loadingMore}
-            hasMore={hasMore}
-            onDeleteEntry={async (id) => {
-              await deleteEntry(id);
-              await reloadFolders();
-            }}
-            onCreateTag={createTag}
-            onDeleteTag={deleteTag}
-            onSetEntryTags={setEntryTags}
-            onSelectEntry={setSelectedEntryId}
-            onSearchQueryChange={setSearchQuery}
-            onSelectedFilterTagIdsChange={setSelectedFilterTagIds}
-            onLoadMore={() => {
-              void loadMore();
-            }}
+            entries={recordingsPanel.entries}
+            totalEntries={recordingsPanel.totalEntries}
+            tags={recordingsPanel.tags}
+            selectedEntry={recordingsPanel.selectedEntry}
+            selectedEntryId={recordingsPanel.selectedEntryId}
+            searchQuery={recordingsPanel.searchQuery}
+            selectedFilterTagIds={recordingsPanel.selectedFilterTagIds}
+            loading={recordingsPanel.loading}
+            loadingMore={recordingsPanel.loadingMore}
+            hasMore={recordingsPanel.hasMore}
+            onDeleteEntry={onDeleteEntry}
+            onCreateTag={recordingsPanel.createTag}
+            onDeleteTag={recordingsPanel.deleteTag}
+            onSetEntryTags={recordingsPanel.setEntryTags}
+            onSelectEntry={recordingsPanel.setSelectedEntryId}
+            onSearchQueryChange={recordingsPanel.setSearchQuery}
+            onSelectedFilterTagIdsChange={recordingsPanel.setSelectedFilterTagIds}
+            onLoadMore={onLoadMore}
           />
         </div>
 
         <main className="min-h-40 flex flex-1 min-w-0">
-          <ScriptPanel selectedEntry={selectedEntry} searchQuery={searchQuery} scriptMessage={scriptMessage} />
+          <ScriptPanel
+            selectedEntry={recordingsPanel.selectedEntry}
+            searchQuery={recordingsPanel.searchQuery}
+            scriptMessage={recordingsPanel.scriptMessage}
+          />
         </main>
       </div>
     </div>
