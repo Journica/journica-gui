@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { Typography } from "../../../../shared/ui/Typography";
 import { TreeView, TreeNodeRenderOpts } from "../../../../shared/ui/TreeView";
+import { SidebarListItem } from "../../../../shared/ui/SidebarListItem";
 import { FolderNode } from "../../hooks/useFolderTree";
 import { Folder } from "../../../recordings/model/types";
 import { ChevronRightIcon } from "../icons/ChevronRightIcon";
@@ -54,36 +55,29 @@ export function JournalTree({
       const showEntryCount = depth === 1;
 
       return (
-        <button
-          className={`w-full text-left px-2 py-1 text-sm rounded flex items-center gap-1 ${
-            isSelected
-              ? "bg-light-50 font-semibold"
-              : "hover:bg-light-50"
-          }`}
+        <SidebarListItem
+          className="px-2"
+          selected={isSelected}
           onClick={() => {
             if (expandable) {
               toggle();
             }
             onSelectFolder(node.id);
           }}
-        >
-          {expandable && (
+          leading={expandable ? (
             <span className="w-4 h-4 flex items-center justify-center select-none">
               <ChevronRightIcon expanded={isExpanded} />
             </span>
+          ) : (
+            <span className="w-4" />
           )}
-          {!expandable && <span className="w-4" />}
-          <span className="flex w-full items-center justify-between gap-2">
-            <span style={{ fontWeight: "400" }} className="truncate block text-[18px] font-normal leading-[19.5px] tracking-[-0.076px] text-dark-90">
-              {label}
-            </span>
-            {showEntryCount && (
-              <Typography variant="caption" className="uppercase font-normal leading-3.75 text-dark-30">
-                {node.data.entry_count}
-              </Typography>
-            )}
-          </span>
-        </button>
+          label={label}
+          trailing={showEntryCount ? (
+            <Typography variant="caption" className="uppercase font-normal leading-3.75 text-dark-30">
+              {node.data.entry_count}
+            </Typography>
+          ) : undefined}
+        />
       );
     },
     [selectedFolderId, onSelectFolder],

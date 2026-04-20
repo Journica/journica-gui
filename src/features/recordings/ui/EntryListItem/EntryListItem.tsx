@@ -1,4 +1,5 @@
 import { Entry } from "../../model/types";
+import { SidebarListItem } from "../../../../shared/ui/SidebarListItem";
 import { useEntryListItem } from "./useEntryListItem";
 
 interface Props {
@@ -23,13 +24,17 @@ export function EntryListItem({
   const { displayTitle, createdAtLabel, durationLabel } = useEntryListItem({ entry });
 
   return (
-    <li
-      className={`p-2 rounded cursor-pointer transition-colors ${
-        selected ? "bg-blue-100 ring-1 ring-blue-300" : "bg-gray-100 hover:bg-gray-200"
-      }`}
+    <SidebarListItem
+      asListItem
+      element="div"
+      className="p-2"
+      selected={selected}
+      selectedClassName="bg-blue-100 ring-1 ring-blue-300 hover:bg-blue-100"
+      unselectedClassName="bg-light-50 hover:bg-light-80"
+      unstyledLabel
+      contentClassName="items-start"
       onClick={() => onSelect(entry.id)}
-    >
-      <div className="flex justify-between items-center">
+      label={
         <div className="flex-1 min-w-0">
           <div className="font-mono text-sm truncate">{displayTitle}</div>
           <div className="text-xs text-gray-500">
@@ -48,8 +53,11 @@ export function EntryListItem({
           )}
           {progress !== undefined && <span>Transcribing: {progress}%</span>}
         </div>
+      }
+      trailing={
         <div className="flex gap-1 ml-2">
           <button
+            type="button"
             onClick={(event) => {
               event.stopPropagation();
               onPlay(entry);
@@ -59,6 +67,7 @@ export function EntryListItem({
             {playing ? "Stop" : "Play"}
           </button>
           <button
+            type="button"
             onClick={(event) => {
               event.stopPropagation();
               onDelete(entry.id);
@@ -68,7 +77,7 @@ export function EntryListItem({
             Delete
           </button>
         </div>
-      </div>
-    </li>
+      }
+    />
   );
 }

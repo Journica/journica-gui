@@ -1,4 +1,5 @@
 import { Tag } from "../../model/types";
+import { SidebarListItem } from "../../../../shared/ui/SidebarListItem";
 import { TagIcon } from "./TagIcon";
 import { useTagManager } from "./useTagManager";
 
@@ -23,23 +24,15 @@ export function TagManager({
       {tags.length > 0 && (
         <ul>
           {tags.map((tag) => (
-            <li key={tag.id}>
-              <button
-                onClick={() => handleToggleFilterTag(tag.id)}
-                className="w-full text-left py-1 text-sm rounded flex items-center gap-1"
-                title="Toggle tag filter"
-              >
-                <span className="flex min-w-0 items-center gap-1">
-                  <TagIcon />
-                  <span
-                    style={{ fontWeight: "400" }}
-                    className="truncate block text-[18px] font-normal leading-[19.5px] tracking-[-0.076px] text-dark-90"
-                  >
-                    {tag.name}
-                  </span>
-                </span>
-              </button>
-            </li>
+            <SidebarListItem
+              key={tag.id}
+              asListItem
+              icon={<TagIcon />}
+              label={tag.name}
+              selected={selectedFilterTagIds.includes(tag.id)}
+              onClick={() => handleToggleFilterTag(tag.id)}
+              title="Toggle tag filter"
+            />
           ))}
         </ul>
       )}
