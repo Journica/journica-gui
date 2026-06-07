@@ -73,7 +73,7 @@ export function EntryListItem({
             {entry.tags.map((tag) => (
               <span
                 key={tag.id}
-                className="rounded-md border border-light-base bg-light-20 px-2 py-0.5 text-xs font-medium text-dark-70"
+                className="rounded-md border border-dark-20 bg-light-20 px-2 py-0.5 text-xs font-medium text-dark-70"
               >
                 {tag.name}
               </span>
