@@ -29,7 +29,7 @@ export function EntryListItem({
     <SidebarListItem
       asListItem
       element="div"
-      className="px-[12px] py-0 rounded-[6px]"
+      className="px-[12px] py-[20px] rounded-[6px]"
       selected={selected}
       selectedClassName="bg-transparent hover:bg-light-80"
       unselectedClassName="bg-transparent hover:bg-light-80"

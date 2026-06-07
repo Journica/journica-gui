@@ -5,6 +5,8 @@ import { Entry } from "../model/types";
 
 export function useAudioPlayer(onError?: (message: string) => void) {
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const objectUrlRef = useRef<string | null>(null);
 
@@ -18,6 +20,7 @@ export function useAudioPlayer(onError?: (message: string) => void) {
   const stopPlayback = () => {
     audioRef.current?.pause();
     setPlayingId(null);
+    setCurrentTime(0);
     clearObjectUrl();
   };
 
@@ -44,6 +47,8 @@ export function useAudioPlayer(onError?: (message: string) => void) {
 
       if (audioRef.current) {
         audioRef.current.src = url;
+        setCurrentTime(0);
+        setDuration(entry.duration_seconds ?? 0);
         await audioRef.current.play();
         setPlayingId(entry.id);
       }
@@ -56,7 +61,16 @@ export function useAudioPlayer(onError?: (message: string) => void) {
 
   const handleEnded = () => {
     setPlayingId(null);
+    setCurrentTime(0);
     clearObjectUrl();
+  };
+
+  const handleLoadedMetadata = () => {
+    setDuration(audioRef.current?.duration || 0);
+  };
+
+  const handleTimeUpdate = () => {
+    setCurrentTime(audioRef.current?.currentTime ?? 0);
   };
 
   useEffect(() => {
@@ -67,9 +81,13 @@ export function useAudioPlayer(onError?: (message: string) => void) {
 
   return {
     playingId,
+    currentTime,
+    duration,
     audioRef,
     handlePlay,
     handleEnded,
+    handleLoadedMetadata,
+    handleTimeUpdate,
     stopPlayback,
   };
 }

@@ -60,8 +60,10 @@ function App() {
         <main className="min-h-40 flex flex-1 min-w-0">
           <ScriptPanel
             selectedEntry={recordingsPanel.selectedEntry}
+            tags={recordingsPanel.tags}
             searchQuery={recordingsPanel.searchQuery}
             scriptMessage={recordingsPanel.scriptMessage}
+            onSetEntryTags={recordingsPanel.setEntryTags}
           />
         </main>
       </div>
