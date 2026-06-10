@@ -58,7 +58,7 @@ export function SidebarListItem({
     <>
       {leading}
       <span className={joinClasses("flex w-full min-w-0 items-center justify-between gap-2", contentClassName)}>
-        <span className="flex min-w-0 items-center gap-1">
+        <span className="flex w-full min-w-0 items-center gap-1">
           {icon}
           {labelNode}
         </span>

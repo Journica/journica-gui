@@ -17,6 +17,8 @@ export function useAppController() {
     reloadFolders,
   } = useFolderTree();
 
+  const recordingsPanel = useRecordingsPanel(selectedFolderId);
+
   const {
     isRecording,
     isPaused: isRecordingPaused,
@@ -25,9 +27,8 @@ export function useAppController() {
     stopCurrentRecording,
   } = useRecordingSession(() => {
     void reloadFolders();
+    void recordingsPanel.loadEntries();
   });
-
-  const recordingsPanel = useRecordingsPanel(selectedFolderId);
 
   const onNewEntry = useCallback(() => {
     void toggleRecording();

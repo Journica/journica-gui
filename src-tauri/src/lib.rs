@@ -58,7 +58,8 @@ pub fn run() {
             features::recordings::commands::move_folder,
             features::recordings::commands::delete_folder,
             features::recordings::commands::move_entry,
-            features::recordings::commands::rename_entry
+            features::recordings::commands::rename_entry,
+            features::transcription::model::ensure_transcription_model
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

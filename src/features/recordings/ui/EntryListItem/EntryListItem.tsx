@@ -36,7 +36,6 @@ export function EntryListItem({
       unstyledLabel
       onClick={() => {
         onSelect(entry.id);
-        onPlay(entry);
       }}
       label={
         <div className="w-full min-w-0">
@@ -63,7 +62,7 @@ export function EntryListItem({
               {durationLabel || "0s"}
             </span>
           </div>
-          <p className="mt-2 text-[13px] leading-5 text-dark-60">{transcriptPreview}</p>
+          <p className="mt-2 text-[13px] leading-5 text-dark-60">&nbsp;{transcriptPreview}</p>
           {progress !== undefined && (
             <Typography variant="caption" className="mt-2 block text-dark-30">
               Transcribing: {progress}%

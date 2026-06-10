@@ -9,9 +9,8 @@ import { JournalTree } from "../JournalTree";
 import { NewFolderModal } from "../NewFolderModal";
 import { NavigationSearch } from "../NavigationSearch";
 import { FolderIcon } from "../icons/FolderIcon";
-import { PauseIcon } from "../icons/PauseIcon";
-import { PlayIcon } from "../icons/PlayIcon";
 import { PlusIcon } from "../icons/PlusIcon";
+import { RecordIcon } from "../icons/RecordIcon";
 import { StopIcon } from "../icons/StopIcon";
 
 interface Props {
@@ -76,9 +75,9 @@ export function NavigationSidebar({
             onClick={onNewEntry}
             aria-label={!isRecording ? "Start recording" : isRecordingPaused ? "Resume recording" : "Pause recording"}
             title={!isRecording ? "Start" : isRecordingPaused ? "Resume" : "Pause"}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-dark-90 text-white transition-colors hover:bg-dark-70"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-500 text-white transition-colors hover:bg-red-600"
           >
-            {isRecording && !isRecordingPaused ? <PauseIcon className="size-4" /> : <PlayIcon className="size-4" />}
+            <RecordIcon className="size-4" />
           </button>
 
 

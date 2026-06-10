@@ -14,12 +14,12 @@ export function TranscriptView({ transcript, searchQuery }: Props) {
         if (segment.highlighted) {
           return (
             <mark key={index} className="bg-yellow-200 rounded px-0.5">
-              {segment.text}
+              {segment.text.trim()}
             </mark>
           );
         }
 
-        return <span key={index}>{segment.text}</span>;
+        return <span key={index}>{segment.text.trim()}</span>;
       })}
     </p>
   );

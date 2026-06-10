@@ -6,6 +6,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 use crate::features::transcription::audio_prep;
+use crate::features::transcription::model;
 
 pub struct TranscriptSegment {
     segment_index: u64,
@@ -22,7 +23,13 @@ pub struct TranscriptionProgress {
 
 pub fn spawn_transcription_thread(file_path: PathBuf, entry_id: String, app: AppHandle) {
     thread::spawn(move || {
-        let model_path = "resources/ggml-base.en.bin";
+        let model_path = match model::ensure_model_available(&app) {
+            Ok(path) => path,
+            Err(err) => {
+                eprintln!("Failed to prepare transcription model: {}", err);
+                return;
+            }
+        };
 
         let samples = match audio_prep::convert_audio(&file_path) {
             Ok(samples) => samples,
@@ -36,8 +43,11 @@ pub fn spawn_transcription_thread(file_path: PathBuf, entry_id: String, app: App
             }
         };
 
-        let ctx = WhisperContext::new_with_params(&model_path, WhisperContextParameters::default())
-            .expect("failed to load model");
+        let ctx = WhisperContext::new_with_params(
+            model_path.to_string_lossy().as_ref(),
+            WhisperContextParameters::default(),
+        )
+        .expect("failed to load model");
 
         let mut state = ctx.create_state().expect("failed to create state");
 
