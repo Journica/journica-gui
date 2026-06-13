@@ -62,6 +62,10 @@ jobs:
         if: matrix.rust_target != ''
         run: rustup target add ${{ matrix.rust_target }}
 
+      - name: Configure Apple Silicon whisper build
+        if: matrix.rust_target == 'aarch64-apple-darwin'
+        run: echo "WHISPER_NATIVE=OFF" >> "$GITHUB_ENV"
+
       - name: Install frontend dependencies
         run: npm ci
 
