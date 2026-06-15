@@ -1,9 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { useState, useEffect } from "react";
-interface TranscriptionProgress {
-    entry_id: string;
-    progress: number;
-}
+import { TranscriptionProgress } from "./types";
+
 export function useTranscriptionProgress() {
     const [progressMap, setProgressMap] = useState<Record<string, number>>({});
 

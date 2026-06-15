@@ -197,10 +197,9 @@ pub async fn stop_recording(
         let folder_id = ensure_today_folder(info.created_at, pool.inner()).await?;
 
         sqlx::query(
-            "INSERT INTO entries (id, folder_id, storage_path, display_name, created_at, duration_seconds) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO entries (id, storage_path, display_name, created_at, duration_seconds) VALUES (?, ?, ?, ?, ?)",
         )
         .bind(&info.id)
-        .bind(&folder_id)
         .bind(&info.storage_path)
         .bind(&info.display_name)
         .bind(info.created_at)
@@ -208,6 +207,14 @@ pub async fn stop_recording(
         .execute(pool.inner())
         .await
         .map_err(|e| e.to_string())?;
+
+        sqlx::query("INSERT OR IGNORE INTO entry_folders (entry_id, folder_id, created_at) VALUES (?, ?, ?)")
+            .bind(&info.id)
+            .bind(&folder_id)
+            .bind(info.created_at)
+            .execute(pool.inner())
+            .await
+            .map_err(|e| e.to_string())?;
 
         println!("Saved entry: {}", info.id);
 
@@ -218,7 +225,7 @@ pub async fn stop_recording(
 
         Ok(Some(Entry {
             id: info.id,
-            folder_id,
+            folder_ids: vec![folder_id],
             storage_path: info.storage_path,
             display_name: info.display_name,
             created_at: info.created_at,

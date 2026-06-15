@@ -66,7 +66,7 @@ pub fn run() {
             features::recordings::commands::rename_folder,
             features::recordings::commands::move_folder,
             features::recordings::commands::delete_folder,
-            features::recordings::commands::move_entry,
+            features::recordings::commands::set_entry_folders,
             features::recordings::commands::rename_entry,
             features::transcription::model::ensure_transcription_model
         ])

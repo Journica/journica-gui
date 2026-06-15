@@ -55,7 +55,16 @@ fn date_parts_from_unix(secs: i64) -> (i32, u32, u32) {
     let days_in_months: [i32; 12] = [
         31,
         if is_leap { 29 } else { 28 },
-        31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
     ];
 
     let mut month: u32 = 0;
@@ -133,16 +142,48 @@ pub fn get_recording_path(storage_path: String, app: tauri::AppHandle) -> Result
         .ok_or_else(|| "Invalid path".to_string())
 }
 
-#[derive(Clone, Serialize, Deserialize, FromRow)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Entry {
     pub id: String,
-    pub folder_id: String,
+    pub folder_ids: Vec<String>,
     pub storage_path: String,
     pub display_name: String,
     pub created_at: i64,
     pub duration_seconds: Option<f64>,
     pub transcript: Option<String>,
     pub title: Option<String>,
+}
+
+#[derive(FromRow)]
+struct DbEntry {
+    id: String,
+    folder_ids: String,
+    storage_path: String,
+    display_name: String,
+    created_at: i64,
+    duration_seconds: Option<f64>,
+    transcript: Option<String>,
+    title: Option<String>,
+}
+
+fn entry_from_db(row: DbEntry) -> Entry {
+    let folder_ids: Vec<String> = row
+        .folder_ids
+        .split(',')
+        .filter(|id| !id.is_empty())
+        .map(|id| id.to_string())
+        .collect();
+
+    Entry {
+        id: row.id,
+        folder_ids,
+        storage_path: row.storage_path,
+        display_name: row.display_name,
+        created_at: row.created_at,
+        duration_seconds: row.duration_seconds,
+        transcript: row.transcript,
+        title: row.title,
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, FromRow)]
@@ -160,6 +201,7 @@ pub struct Tag {
     pub id: String,
     pub name: String,
     pub created_at: i64,
+    pub entry_count: i64,
 }
 
 #[derive(Clone, Serialize, Deserialize, FromRow)]
@@ -172,8 +214,9 @@ pub struct EntryTagRecord {
 
 #[tauri::command]
 pub async fn get_entries(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<Entry>, String> {
-    let entries = sqlx::query_as::<_, Entry>(
-        "SELECT e.id, e.folder_id, e.storage_path, e.display_name, e.created_at, e.duration_seconds,
+    let entries = sqlx::query_as::<_, DbEntry>(
+        "SELECT e.id, e.storage_path, e.display_name, e.created_at, e.duration_seconds,
+                COALESCE((SELECT group_concat(folder_id) FROM entry_folders WHERE entry_id = e.id), '') AS folder_ids,
                 COALESCE(o.text, (SELECT group_concat(text, ' ') FROM (SELECT text FROM transcript_segments WHERE entry_id = e.id ORDER BY segment_index))) AS transcript,
                 e.title
          FROM entries e
@@ -184,7 +227,7 @@ pub async fn get_entries(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<Entry
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(entries)
+    Ok(entries.into_iter().map(entry_from_db).collect())
 }
 
 #[tauri::command]
@@ -208,16 +251,21 @@ pub async fn query_entries(
                  FROM folders f
                  JOIN folder_scope fs ON f.parent_id = fs.id
              )
-             SELECT e.id, e.folder_id, e.storage_path, e.display_name, e.created_at, e.duration_seconds,
-                    COALESCE(o.text, (SELECT group_concat(text, ' ') FROM (SELECT text FROM transcript_segments WHERE entry_id = e.id ORDER BY segment_index))) AS transcript,
-                    e.title
-             FROM entries e
-             LEFT JOIN transcript_overrides o ON o.entry_id = e.id
-             WHERE e.folder_id IN (SELECT id FROM folder_scope)
-             ORDER BY e.created_at DESC
-             LIMIT ? OFFSET ?"
+              SELECT e.id, e.storage_path, e.display_name, e.created_at, e.duration_seconds,
+                     COALESCE((SELECT group_concat(folder_id) FROM entry_folders WHERE entry_id = e.id), '') AS folder_ids,
+                     COALESCE(o.text, (SELECT group_concat(text, ' ') FROM (SELECT text FROM transcript_segments WHERE entry_id = e.id ORDER BY segment_index))) AS transcript,
+                     e.title
+              FROM entries e
+              LEFT JOIN transcript_overrides o ON o.entry_id = e.id
+              WHERE EXISTS (
+                  SELECT 1 FROM entry_folders ef
+                  WHERE ef.entry_id = e.id AND ef.folder_id IN (SELECT id FROM folder_scope)
+              )
+              ORDER BY e.created_at DESC
+              LIMIT ? OFFSET ?"
         } else {
-            "SELECT e.id, e.folder_id, e.storage_path, e.display_name, e.created_at, e.duration_seconds,
+            "SELECT e.id, e.storage_path, e.display_name, e.created_at, e.duration_seconds,
+                    COALESCE((SELECT group_concat(folder_id) FROM entry_folders WHERE entry_id = e.id), '') AS folder_ids,
                     COALESCE(o.text, (SELECT group_concat(text, ' ') FROM (SELECT text FROM transcript_segments WHERE entry_id = e.id ORDER BY segment_index))) AS transcript,
                     e.title
              FROM entries e
@@ -226,14 +274,14 @@ pub async fn query_entries(
              LIMIT ? OFFSET ?"
         };
 
-        let mut q = sqlx::query_as::<_, Entry>(sql);
+        let mut q = sqlx::query_as::<_, DbEntry>(sql);
         if let Some(ref fid) = folder_id {
             q = q.bind(fid);
         }
         q = q.bind(safe_limit).bind(safe_offset);
 
         let entries = q.fetch_all(pool.inner()).await.map_err(|e| e.to_string())?;
-        return Ok(entries);
+        return Ok(entries.into_iter().map(entry_from_db).collect());
     }
 
     let terms = tokenize_query(&trimmed_query);
@@ -245,7 +293,9 @@ pub async fn query_entries(
     let effective_transcript = effective_transcript_expr("e", "o");
 
     let mut sql = format!(
-        "SELECT e.id, e.folder_id, e.storage_path, e.display_name, e.created_at, e.duration_seconds, {} AS transcript, e.title
+        "SELECT e.id, e.storage_path, e.display_name, e.created_at, e.duration_seconds,
+                COALESCE((SELECT group_concat(folder_id) FROM entry_folders WHERE entry_id = e.id), '') AS folder_ids,
+                {} AS transcript, e.title
          FROM entries e
          LEFT JOIN transcript_overrides o ON o.entry_id = e.id
          WHERE ",
@@ -254,15 +304,18 @@ pub async fn query_entries(
 
     if folder_id.is_some() {
         sql.push_str(
-            "e.folder_id IN (
-                WITH RECURSIVE folder_scope(id) AS (
-                    SELECT ?
-                    UNION ALL
-                    SELECT f.id
-                    FROM folders f
-                    JOIN folder_scope fs ON f.parent_id = fs.id
+            "EXISTS (
+                SELECT 1 FROM entry_folders ef
+                WHERE ef.entry_id = e.id AND ef.folder_id IN (
+                    WITH RECURSIVE folder_scope(id) AS (
+                        SELECT ?
+                        UNION ALL
+                        SELECT f.id
+                        FROM folders f
+                        JOIN folder_scope fs ON f.parent_id = fs.id
+                    )
+                    SELECT id FROM folder_scope
                 )
-                SELECT id FROM folder_scope
             ) AND ",
         );
     }
@@ -281,7 +334,7 @@ pub async fn query_entries(
 
     sql.push_str(" ORDER BY e.created_at DESC LIMIT ? OFFSET ?");
 
-    let mut q = sqlx::query_as::<_, Entry>(&sql);
+    let mut q = sqlx::query_as::<_, DbEntry>(&sql);
 
     if let Some(ref fid) = folder_id {
         q = q.bind(fid);
@@ -303,13 +356,17 @@ pub async fn query_entries(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(entries)
+    Ok(entries.into_iter().map(entry_from_db).collect())
 }
 
 #[tauri::command]
 pub async fn list_tags(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<Tag>, String> {
     let tags = sqlx::query_as::<_, Tag>(
-        "SELECT id, name, created_at FROM tags ORDER BY name COLLATE NOCASE ASC",
+        "SELECT t.id, t.name, t.created_at, COUNT(DISTINCT et.entry_id) AS entry_count
+         FROM tags t
+         LEFT JOIN entry_tags et ON et.tag_id = t.id
+         GROUP BY t.id, t.name, t.created_at
+         ORDER BY t.name COLLATE NOCASE ASC",
     )
     .fetch_all(pool.inner())
     .await
@@ -328,7 +385,12 @@ pub async fn create_tag(name: String, pool: tauri::State<'_, SqlitePool>) -> Res
     let normalized = normalize_name(trimmed_name);
 
     if let Some(existing) = sqlx::query_as::<_, Tag>(
-        "SELECT id, name, created_at FROM tags WHERE normalized_name = ? LIMIT 1",
+        "SELECT t.id, t.name, t.created_at, COUNT(DISTINCT et.entry_id) AS entry_count
+         FROM tags t
+         LEFT JOIN entry_tags et ON et.tag_id = t.id
+         WHERE t.normalized_name = ?
+         GROUP BY t.id, t.name, t.created_at
+         LIMIT 1",
     )
     .bind(&normalized)
     .fetch_optional(pool.inner())
@@ -354,6 +416,7 @@ pub async fn create_tag(name: String, pool: tauri::State<'_, SqlitePool>) -> Res
         id,
         name: trimmed_name.to_string(),
         created_at,
+        entry_count: 0,
     })
 }
 
@@ -494,10 +557,10 @@ pub async fn list_folders(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<Fold
             JOIN folders f ON f.parent_id = fd.descendant_id
         )
         SELECT f.id, f.parent_id, f.name, f.created_at, f.updated_at,
-               COUNT(e.id) AS entry_count
+               COUNT(DISTINCT ef.entry_id) AS entry_count
         FROM folders f
         LEFT JOIN folder_descendants fd ON fd.ancestor_id = f.id
-        LEFT JOIN entries e ON e.folder_id = fd.descendant_id
+        LEFT JOIN entry_folders ef ON ef.folder_id = fd.descendant_id
         GROUP BY f.id, f.parent_id, f.name, f.created_at, f.updated_at
         ORDER BY f.name COLLATE NOCASE ASC",
     )
@@ -626,19 +689,18 @@ pub async fn delete_folder(
         return Err("Cannot delete root folder".to_string());
     }
 
-    let has_children: (i64,) =
-        sqlx::query_as("SELECT COUNT(*) FROM folders WHERE parent_id = ?")
-            .bind(&folder_id)
-            .fetch_one(pool.inner())
-            .await
-            .map_err(|e| e.to_string())?;
+    let has_children: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM folders WHERE parent_id = ?")
+        .bind(&folder_id)
+        .fetch_one(pool.inner())
+        .await
+        .map_err(|e| e.to_string())?;
 
     if has_children.0 > 0 {
         return Err("Cannot delete folder with subfolders".to_string());
     }
 
     let has_entries: (i64,) =
-        sqlx::query_as("SELECT COUNT(*) FROM entries WHERE folder_id = ?")
+        sqlx::query_as("SELECT COUNT(*) FROM entry_folders WHERE folder_id = ?")
             .bind(&folder_id)
             .fetch_one(pool.inner())
             .await
@@ -658,17 +720,41 @@ pub async fn delete_folder(
 }
 
 #[tauri::command]
-pub async fn move_entry(
+pub async fn set_entry_folders(
     entry_id: String,
-    folder_id: String,
+    folder_ids: Vec<String>,
     pool: tauri::State<'_, SqlitePool>,
 ) -> Result<(), String> {
-    sqlx::query("UPDATE entries SET folder_id = ? WHERE id = ?")
-        .bind(&folder_id)
+    let mut unique_folder_ids: Vec<String> = folder_ids
+        .into_iter()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
+    unique_folder_ids.sort();
+    if unique_folder_ids.is_empty() {
+        return Err("Recording must belong to at least one folder".to_string());
+    }
+
+    let now = now_unix()?;
+    let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+
+    sqlx::query("DELETE FROM entry_folders WHERE entry_id = ?")
         .bind(&entry_id)
-        .execute(pool.inner())
+        .execute(&mut *tx)
         .await
         .map_err(|e| e.to_string())?;
+
+    for folder_id in unique_folder_ids {
+        sqlx::query("INSERT INTO entry_folders (entry_id, folder_id, created_at) VALUES (?, ?, ?)")
+            .bind(&entry_id)
+            .bind(&folder_id)
+            .bind(now)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+
+    tx.commit().await.map_err(|e| e.to_string())?;
 
     Ok(())
 }

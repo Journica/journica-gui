@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
-import { FolderNode } from "./useFolderTree";
+import { FolderNode } from "../types";
+import { flattenNodes } from "../utils";
 import { useNewFolderModal } from "./useNewFolderModal";
 
 interface Params {
@@ -7,17 +8,6 @@ interface Params {
   userNodes: FolderNode[];
   onSelectFolder: (folderId: string) => void;
   onCreateFolder: (name: string) => Promise<void>;
-}
-
-function flattenNodes(nodes: FolderNode[]): FolderNode[] {
-  const result: FolderNode[] = [];
-
-  for (const node of nodes) {
-    result.push(node);
-    result.push(...flattenNodes(node.children));
-  }
-
-  return result;
 }
 
 export function useNavigationSidebar({ selectedFolderId, userNodes, onSelectFolder, onCreateFolder }: Params) {

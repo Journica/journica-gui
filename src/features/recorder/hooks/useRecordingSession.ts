@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { pauseRecording, resumeRecording, startRecording, stopRecording } from "../api/recorderApi";
+import { TIMER_INTERVAL_MS } from "../constants";
 
 export function useRecordingSession(onStop?: () => void) {
   const [isRecording, setIsRecording] = useState(false);
@@ -52,7 +53,7 @@ export function useRecordingSession(onStop?: () => void) {
 
     const intervalId = window.setInterval(() => {
       setDurationSeconds((previous) => previous + 1);
-    }, 1000);
+    }, TIMER_INTERVAL_MS);
 
     return () => {
       window.clearInterval(intervalId);

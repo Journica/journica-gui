@@ -1,14 +1,11 @@
 import { Typography } from "../../../../shared/ui/Typography";
-import { SidebarListItem } from "../../../../shared/ui/SidebarListItem";
 import { Tag } from "../../../recordings/model/types";
 import { TagManager } from "../../../recordings/ui/TagManager";
-import { FolderNode } from "../../hooks/useFolderTree";
-import { useNavigationSidebar } from "../../hooks/useNavigationSidebar";
+import { FolderNode } from "../../types";
 import { useNewTagModal } from "../../hooks/useNewTagModal";
 import { JournalTree } from "../JournalTree";
 import { NewFolderModal } from "../NewFolderModal";
 import { NavigationSearch } from "../NavigationSearch";
-import { FolderIcon } from "../icons/FolderIcon";
 import { PlusIcon } from "../icons/PlusIcon";
 import { RecordIcon } from "../icons/RecordIcon";
 import { StopIcon } from "../icons/StopIcon";
@@ -22,7 +19,6 @@ interface Props {
   onNewEntry: () => void;
   onStopEntry: () => void;
   journalNodes: FolderNode[];
-  userNodes: FolderNode[];
   expandedIds: Set<string>;
   selectedFolderId: string | null;
   tags: Tag[];
@@ -30,7 +26,6 @@ interface Props {
   onToggleExpanded: (folderId: string) => void;
   onSelectFolder: (folderId: string) => void;
   onSelectedFilterTagIdsChange: (tagIds: string[]) => void;
-  onCreateFolder: (name: string) => Promise<void>;
   onCreateTag: (name: string) => Promise<Tag>;
 }
 
@@ -43,7 +38,6 @@ export function NavigationSidebar({
   onNewEntry,
   onStopEntry,
   journalNodes,
-  userNodes,
   expandedIds,
   selectedFolderId,
   tags,
@@ -51,16 +45,9 @@ export function NavigationSidebar({
   onToggleExpanded,
   onSelectFolder,
   onSelectedFilterTagIdsChange,
-  onCreateFolder,
   onCreateTag,
 }: Props) {
   const newTagModal = useNewTagModal({ onCreateTag });
-  const { newFolderModal, flatUserNodes, onSelectUserFolder, isUserFolderSelected } = useNavigationSidebar({
-    selectedFolderId,
-    userNodes,
-    onSelectFolder,
-    onCreateFolder,
-  });
 
   const minutes = String(Math.floor(recordingDurationSeconds / 60)).padStart(2, "0");
   const seconds = String(recordingDurationSeconds % 60).padStart(2, "0");
@@ -115,41 +102,6 @@ export function NavigationSidebar({
           onToggleExpanded={onToggleExpanded}
           onSelectFolder={onSelectFolder}
         />
-
-        <hr className="my-3 border-light-base" />
-
-        <div className="[&>*]:text-[15px] flex justify-between text-center">
-          <Typography variant="caption" className="uppercase font-normal leading-3.75 text-dark-30">
-            Folders
-          </Typography>
-          <PlusIcon className="cursor-pointer text-dark-30" onClick={newFolderModal.open} />
-        </div>
-
-        <ul>
-          {flatUserNodes.map((node) => {
-            const isSelected = isUserFolderSelected(node.id);
-
-            return (
-              <SidebarListItem
-                key={node.id}
-                asListItem
-                icon={<FolderIcon />}
-                label={node.data.name}
-                selected={isSelected}
-                selectedClassName="bg-light-80 font-semibold hover:bg-light-80"
-                onClick={() => {
-                  onSelectUserFolder(node.id);
-                }}
-                trailing={
-                  <Typography variant="caption" className="uppercase font-normal leading-3.75 text-dark-30 pr-2">
-                    {node.data.entry_count}
-                  </Typography>
-                }
-              />
-            );
-          })}
-        </ul>
-
         <hr className="my-3 border-light-base" />
 
         <div className="[&>*]:text-[15px] flex justify-between text-center">
@@ -164,20 +116,6 @@ export function NavigationSidebar({
           onSelectedFilterTagIdsChange={onSelectedFilterTagIdsChange}
         />
       </div>
-
-      <NewFolderModal
-        isOpen={newFolderModal.isOpen}
-        value={newFolderModal.name}
-        isSaving={newFolderModal.isSaving}
-        canSave={newFolderModal.canSave}
-        errorMessage={newFolderModal.errorMessage}
-        onValueChange={newFolderModal.handleNameChange}
-        onInputKeyDown={newFolderModal.handleInputKeyDown}
-        onClose={newFolderModal.close}
-        onSave={() => {
-          void newFolderModal.save();
-        }}
-      />
 
       <NewFolderModal
         isOpen={newTagModal.isOpen}

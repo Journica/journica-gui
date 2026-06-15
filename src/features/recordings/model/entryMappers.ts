@@ -12,6 +12,7 @@ export function mapEntryTags(records: EntryTagRecord[]): Map<string, Tag[]> {
       id: record.tag_id,
       name: record.tag_name,
       created_at: record.tag_created_at,
+      entry_count: 0,
     };
 
     const existing = tagsByEntry.get(record.entry_id) ?? [];

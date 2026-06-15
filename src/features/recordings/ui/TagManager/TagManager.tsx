@@ -1,5 +1,6 @@
 import { Tag } from "../../model/types";
 import { SidebarListItem } from "../../../../shared/ui/SidebarListItem";
+import { Typography } from "../../../../shared/ui/Typography";
 import { TagIcon } from "./TagIcon";
 import { useTagManager } from "./useTagManager";
 
@@ -32,6 +33,11 @@ export function TagManager({
               selected={selectedFilterTagIds.includes(tag.id)}
               onClick={() => handleToggleFilterTag(tag.id)}
               title="Toggle tag filter"
+              trailing={
+                <Typography variant="caption" className="uppercase font-normal leading-3.75 text-dark-30 pr-2">
+                  {tag.entry_count}
+                </Typography>
+              }
             />
           ))}
         </ul>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatDuration } from "../../../../shared/utils/formatDuration";
 import { useAudioPlayer } from "../../hooks/useAudioPlayer";
 import { Entry, Tag } from "../../model/types";
+import { formatCreatedAt } from "./utils";
 
 interface UseScriptPanelParams {
   selectedEntry: Entry | null;
@@ -9,21 +10,11 @@ interface UseScriptPanelParams {
   audioPlayer: ReturnType<typeof useAudioPlayer>;
 }
 
-const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-function formatCreatedAt(createdAtSeconds: number): string {
-  const createdAt = new Date(createdAtSeconds * 1000);
-  const day = createdAt.getDate();
-  const month = MONTH_LABELS[createdAt.getMonth()] ?? "";
-  const hour24 = createdAt.getHours();
-  const hour12 = hour24 % 12 || 12;
-  const minutes = String(createdAt.getMinutes()).padStart(2, "0");
-  const period = hour24 >= 12 ? "PM" : "AM";
-
-  return `${day} ${month} ${hour12}:${minutes} ${period}`;
-}
-
-export function useScriptPanel({ selectedEntry, onSetEntryTags, audioPlayer }: UseScriptPanelParams) {
+export function useScriptPanel({
+  selectedEntry,
+  onSetEntryTags,
+  audioPlayer,
+}: UseScriptPanelParams) {
   const [tagsOpen, setTagsOpen] = useState(false);
   const [draftTagIds, setDraftTagIds] = useState<string[]>([]);
   const [updatingTags, setUpdatingTags] = useState(false);

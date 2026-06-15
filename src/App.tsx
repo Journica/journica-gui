@@ -1,11 +1,9 @@
 import { NavigationSidebar } from "./features/navigation";
 import { RecordingsSidebar, ScriptPanel } from "./features/recordings";
-import { ModelDownloadProgress, useModelSetup } from "./features/transcription/useModelSetup";
+import { useModelSetup } from "./features/transcription/useModelSetup";
+import { ModelDownloadProgress } from "./features/transcription/types";
 import { useAppController } from "./hooks/useAppController";
-
-function formatBytes(bytes: number): string {
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
+import { formatBytes } from "./shared/utils/formatBytes";
 
 function ModelSetupScreen({ progress, errorMessage, onRetry }: {
   progress: ModelDownloadProgress | null;
@@ -56,7 +54,6 @@ function MainApp() {
     folderSearchQuery,
     setFolderSearchQuery,
     journalNodes,
-    userNodes,
     expandedIds,
     toggleExpanded,
     selectedFolderId,
@@ -66,7 +63,6 @@ function MainApp() {
     recordingDurationSeconds,
     onNewEntry,
     onStopEntry,
-    onCreateFolder,
     onDeleteEntry,
     onLoadMore,
     recordingsPanel,
@@ -85,7 +81,6 @@ function MainApp() {
             onNewEntry={onNewEntry}
             onStopEntry={onStopEntry}
             journalNodes={journalNodes}
-            userNodes={userNodes}
             expandedIds={expandedIds}
             selectedFolderId={selectedFolderId}
             tags={recordingsPanel.tags}
@@ -93,7 +88,6 @@ function MainApp() {
             onToggleExpanded={toggleExpanded}
             onSelectFolder={setSelectedFolderId}
             onSelectedFilterTagIdsChange={recordingsPanel.setSelectedFilterTagIds}
-            onCreateFolder={onCreateFolder}
             onCreateTag={recordingsPanel.createTag}
           />
         </aside>

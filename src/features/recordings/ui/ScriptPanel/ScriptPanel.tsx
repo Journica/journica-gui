@@ -14,7 +14,14 @@ interface Props {
   audioPlayer: ReturnType<typeof useAudioPlayer>;
 }
 
-export function ScriptPanel({ selectedEntry, tags, searchQuery, scriptMessage, onSetEntryTags, audioPlayer }: Props) {
+export function ScriptPanel({
+  selectedEntry,
+  tags,
+  searchQuery,
+  scriptMessage,
+  onSetEntryTags,
+  audioPlayer,
+}: Props) {
   const {
     transcript,
     createdAtLabel,
@@ -64,32 +71,43 @@ export function ScriptPanel({ selectedEntry, tags, searchQuery, scriptMessage, o
             />
           </div>
 
-          <div className="flex flex-wrap items-center">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                void handlePlay(selectedEntry);
+              }}
+              aria-label={isPlaying ? "Stop playback" : "Play recording"}
+              title={isPlaying ? "Stop" : "Play"}
+              className={`inline-flex size-10 items-center justify-center rounded-full border border-dark-20 p-2 transition-colors ${isPlaying ? "bg-light-80" : "hover:bg-light-80"}`}
+            >
+              {isPlaying ? <PauseIcon className="size-4 text-dark-80" /> : <img src={playIcon} alt="" aria-hidden="true" className="h-4 w-auto" />}
+            </button>
+
             <div className="relative">
               {tagsOpen && (
                 <div className="absolute left-0 top-11 z-10 flex w-56 flex-col rounded-2xl border border-light-base bg-white p-2 shadow-lg">
                   <div className="flex flex-col gap-1">
-                  {tags.map((tag) => {
-                    const selected = draftTagIds.includes(tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => {
-                          handleToggleTag(tag);
-                        }}
-                        disabled={updatingTags}
-                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors disabled:opacity-50 ${selected ? "bg-light-40 text-dark-90" : "text-dark-70 hover:bg-light-30"
-                          }`}
-                      >
-                        <span className="flex min-w-0 items-center gap-2">
-                          <TagIcon className={`size-4 shrink-0 ${selected ? "text-dark-80" : "text-dark-40"}`} />
-                          <span className="truncate">{tag.name}</span>
-                        </span>
-                        {selected && <CheckIcon className="size-4 shrink-0 text-dark-80" />}
-                      </button>
-                    );
-                  })}
+                    {tags.map((tag) => {
+                      const selected = draftTagIds.includes(tag.id);
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => {
+                            handleToggleTag(tag);
+                          }}
+                          disabled={updatingTags}
+                          className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors disabled:opacity-50 ${selected ? "bg-light-40 text-dark-90" : "text-dark-70 hover:bg-light-30"}`}
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <TagIcon className={`size-4 shrink-0 ${selected ? "text-dark-80" : "text-dark-40"}`} />
+                            <span className="truncate">{tag.name}</span>
+                          </span>
+                          {selected && <CheckIcon className="size-4 shrink-0 text-dark-80" />}
+                        </button>
+                      );
+                    })}
                   </div>
                   <div className="mt-2 flex justify-end gap-2 border-t border-light-base pt-2">
                     <button
@@ -113,36 +131,22 @@ export function ScriptPanel({ selectedEntry, tags, searchQuery, scriptMessage, o
                   </div>
                 </div>
               )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (tagsOpen) {
+                    cancelTags();
+                    return;
+                  }
 
-
+                  openTags();
+                }}
+                disabled={tags.length === 0 || updatingTags}
+                className="rounded-full border border-dark-20 px-4 py-2 text-sm font-semibold text-dark-80 transition-colors hover:bg-light-30 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Add tag
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                void handlePlay(selectedEntry);
-              }}
-              aria-label={isPlaying ? "Stop playback" : "Play recording"}
-              title={isPlaying ? "Stop" : "Play"}
-              className={`mr-2 inline-flex size-10 items-center justify-center rounded-full border border-dark-20 p-2 transition-colors ${isPlaying ? "bg-light-80" : "hover:bg-light-80"}`}
-            >
-              {isPlaying ? <PauseIcon className="size-4 text-dark-80" /> : <img src={playIcon} alt="" aria-hidden="true" className="h-4 w-auto" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (tagsOpen) {
-                  cancelTags();
-                  return;
-                }
-
-                openTags();
-              }}
-              disabled={tags.length === 0 || updatingTags}
-              className="rounded-full border border-dark-20 px-4 py-2 text-sm font-semibold text-dark-80 transition-colors hover:bg-light-30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Add tag
-            </button>
           </div>
 
           {errorMessage && <p className="text-sm text-red-700">{errorMessage}</p>}

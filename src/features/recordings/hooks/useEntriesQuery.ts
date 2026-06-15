@@ -7,12 +7,12 @@ import {
   getEntryTags,
   listTags,
   queryEntries,
+  setEntryFolders as setEntryFoldersRequest,
   setEntryTags as setEntryTagsRequest,
 } from "../api/recordingsApi";
+import { DEBOUNCE_MS, PAGE_SIZE } from "../constants";
 import { mapEntryTags, sortTagsByName } from "../model/entryMappers";
 import { Entry, Tag } from "../model/types";
-
-const PAGE_SIZE = 100;
 
 export function useEntriesQuery(folderId?: string | null) {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -99,8 +99,9 @@ export function useEntriesQuery(folderId?: string | null) {
     async (id: string) => {
       await deleteEntryRequest(id);
       await loadEntries();
+      await loadTags();
     },
-    [loadEntries],
+    [loadEntries, loadTags],
   );
 
   const createTag = useCallback(async (name: string) => {
@@ -147,18 +148,27 @@ export function useEntriesQuery(folderId?: string | null) {
           entryId,
           tagIds: uniqueTagIds,
         });
+        await loadTags();
       } catch (error) {
         await loadEntries();
         throw error;
       }
     },
-    [loadEntries, tags],
+    [loadEntries, loadTags, tags],
+  );
+
+  const setEntryFolders = useCallback(
+    async (entryId: string, folderIds: string[]) => {
+      await setEntryFoldersRequest(entryId, [...new Set(folderIds)]);
+      await loadEntries();
+    },
+    [loadEntries],
   );
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setDebouncedQuery(searchQuery.trim());
-    }, 100);
+    }, DEBOUNCE_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
@@ -199,5 +209,6 @@ export function useEntriesQuery(folderId?: string | null) {
     createTag,
     deleteTag,
     setEntryTags,
+    setEntryFolders,
   };
 }

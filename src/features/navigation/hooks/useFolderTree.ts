@@ -1,76 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { listFolders } from "../../recordings/api/recordingsApi";
-import { Folder } from "../../recordings/model/types";
-import { TreeNode } from "../../../shared/ui/TreeView";
-
-export type FolderNode = TreeNode<Folder>;
-
-function buildTree(folders: Folder[]): FolderNode[] {
-  const byParent = new Map<string, Folder[]>();
-
-  for (const folder of folders) {
-    const parentKey = folder.parent_id ?? "__root__";
-    const siblings = byParent.get(parentKey) ?? [];
-    siblings.push(folder);
-    byParent.set(parentKey, siblings);
-  }
-
-  function buildChildren(parentId: string): FolderNode[] {
-    const children = byParent.get(parentId) ?? [];
-    return children.map((folder) => ({
-      id: folder.id,
-      data: folder,
-      children: buildChildren(folder.id),
-    }));
-  }
-
-  const rootFolder = folders.find((f) => f.id === "root");
-  if (!rootFolder) return [];
-
-  return buildChildren("root");
-}
-
-function isDateName(name: string): boolean {
-  return /^\d{2,4}$/.test(name);
-}
-
-function splitTree(nodes: FolderNode[]): {
-  journalNodes: FolderNode[];
-  userNodes: FolderNode[];
-} {
-  const journalNodes: FolderNode[] = [];
-  const userNodes: FolderNode[] = [];
-
-  for (const node of nodes) {
-    if (isDateName(node.data.name)) {
-      journalNodes.push(node);
-    } else {
-      userNodes.push(node);
-    }
-  }
-
-  journalNodes.sort((a, b) => b.data.name.localeCompare(a.data.name));
-
-  return { journalNodes, userNodes };
-}
-
-function todayKeys(): { year: string } {
-  const now = new Date();
-  return {
-    year: String(now.getFullYear()).padStart(4, "0"),
-  };
-}
-
-function defaultExpanded(journalNodes: FolderNode[]): Set<string> {
-  const expanded = new Set<string>();
-  const { year } = todayKeys();
-
-  const yearNode = journalNodes.find((n) => n.data.name === year);
-  if (!yearNode) return expanded;
-  expanded.add(yearNode.id);
-
-  return expanded;
-}
+import { listFolders } from "../api/navigationApi";
+import { Folder } from "../types";
+import { buildTree, defaultExpanded, splitTree } from "../utils";
 
 export function useFolderTree() {
   const [folders, setFolders] = useState<Folder[]>([]);

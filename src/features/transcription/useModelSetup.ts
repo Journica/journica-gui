@@ -1,12 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
-
-export interface ModelDownloadProgress {
-  downloaded_bytes: number;
-  total_bytes: number | null;
-  progress: number | null;
-}
+import { ModelDownloadProgress } from "./types";
 
 export function useModelSetup() {
   const [ready, setReady] = useState(false);

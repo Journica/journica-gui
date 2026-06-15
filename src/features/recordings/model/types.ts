@@ -2,20 +2,12 @@ export interface Tag {
   id: string;
   name: string;
   created_at: number;
-}
-
-export interface Folder {
-  id: string;
-  parent_id: string | null;
-  name: string;
-  created_at: number;
-  updated_at: number;
   entry_count: number;
 }
 
 export interface Entry {
   id: string;
-  folder_id: string;
+  folder_ids: string[];
   storage_path: string;
   display_name: string;
   created_at: number;
@@ -27,7 +19,7 @@ export interface Entry {
 
 export interface EntryRow {
   id: string;
-  folder_id: string;
+  folder_ids: string[];
   storage_path: string;
   display_name: string;
   created_at: number;

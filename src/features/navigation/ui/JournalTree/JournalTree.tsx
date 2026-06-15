@@ -2,8 +2,7 @@ import { useCallback } from "react";
 import { Typography } from "../../../../shared/ui/Typography";
 import { TreeView, TreeNodeRenderOpts } from "../../../../shared/ui/TreeView";
 import { SidebarListItem } from "../../../../shared/ui/SidebarListItem";
-import { FolderNode } from "../../hooks/useFolderTree";
-import { Folder } from "../../../recordings/model/types";
+import { Folder, FolderNode } from "../../types";
 import { ChevronRightIcon } from "../icons/ChevronRightIcon";
 
 interface Props {

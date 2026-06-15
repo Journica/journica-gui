@@ -73,14 +73,23 @@ async fn recover_session(
     let folder_id = ensure_today_folder(manifest.created_at, pool).await?;
 
     sqlx::query(
-        "INSERT INTO entries (id, folder_id, storage_path, display_name, created_at, duration_seconds) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO entries (id, storage_path, display_name, created_at, duration_seconds) VALUES (?, ?, ?, ?, ?)",
     )
     .bind(&manifest.id)
-    .bind(&folder_id)
     .bind(&manifest.storage_path)
     .bind(&manifest.display_name)
     .bind(manifest.created_at)
     .bind(duration_seconds)
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    sqlx::query(
+        "INSERT OR IGNORE INTO entry_folders (entry_id, folder_id, created_at) VALUES (?, ?, ?)",
+    )
+    .bind(&manifest.id)
+    .bind(&folder_id)
+    .bind(manifest.created_at)
     .execute(pool)
     .await
     .map_err(|e| e.to_string())?;

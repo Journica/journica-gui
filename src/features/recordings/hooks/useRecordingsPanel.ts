@@ -21,6 +21,7 @@ export function useRecordingsPanel(folderId?: string | null) {
     createTag,
     deleteTag,
     setEntryTags,
+    setEntryFolders,
   } = useEntriesQuery(folderId);
 
   const visibleEntries = useMemo(() => {
@@ -69,6 +70,7 @@ export function useRecordingsPanel(folderId?: string | null) {
     createTag,
     deleteTag,
     setEntryTags,
+    setEntryFolders,
     selectedEntryId,
     setSelectedEntryId,
     selectedEntry,
