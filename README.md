@@ -1,12 +1,10 @@
-# Journica
+![Journica hero](docs/assets/journica-hero.svg)
 
 Journica is a local-first desktop app for recording spoken notes, transcribing them offline, and finding them later by date, folder, tag, or transcript text.
 
 [Download the latest release](https://github.com/Journica/journica-gui/releases) | [Report an issue](https://github.com/Journica/journica-gui/issues)
 
 ## Preview
-
-![Journica hero](docs/assets/journica-hero.svg)
 
 ![Journica app overview](docs/assets/app-overview.png)
 
