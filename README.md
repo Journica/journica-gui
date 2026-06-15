@@ -6,6 +6,8 @@ Journica is a local-first desktop app for recording spoken notes, transcribing t
 
 ## Preview
 
+![Journica hero](docs/assets/journica-hero.svg)
+
 ![Journica app overview](docs/assets/app-overview.png)
 
 ## Why Journica
