@@ -34,7 +34,7 @@ function ModelSetupScreen({ progress, errorMessage, onRetry }: {
 
         {errorMessage && (
           <div className="mt-5">
-            <p className="text-sm text-red-600">{errorMessage}</p>
+            <p className="text-sm text-red-500">{errorMessage}</p>
             <button
               type="button"
               onClick={onRetry}
@@ -89,6 +89,8 @@ function MainApp() {
             onSelectFolder={setSelectedFolderId}
             onSelectedFilterTagIdsChange={recordingsPanel.setSelectedFilterTagIds}
             onCreateTag={recordingsPanel.createTag}
+            onRenameTag={recordingsPanel.renameTag}
+            onDeleteTag={recordingsPanel.deleteTag}
           />
         </aside>
 

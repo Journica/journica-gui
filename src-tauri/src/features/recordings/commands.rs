@@ -421,6 +421,58 @@ pub async fn create_tag(name: String, pool: tauri::State<'_, SqlitePool>) -> Res
 }
 
 #[tauri::command]
+pub async fn rename_tag(
+    tag_id: String,
+    name: String,
+    pool: tauri::State<'_, SqlitePool>,
+) -> Result<Tag, String> {
+    let trimmed_name = name.trim().to_string();
+    if trimmed_name.is_empty() {
+        return Err("Tag name cannot be empty".to_string());
+    }
+
+    let normalized = normalize_name(&trimmed_name);
+
+    let existing: Option<(String,)> = sqlx::query_as(
+        "SELECT id FROM tags WHERE normalized_name = ? AND id <> ? LIMIT 1",
+    )
+    .bind(&normalized)
+    .bind(&tag_id)
+    .fetch_optional(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    if existing.is_some() {
+        return Err("Tag name already exists".to_string());
+    }
+
+    let result = sqlx::query("UPDATE tags SET name = ?, normalized_name = ? WHERE id = ?")
+        .bind(&trimmed_name)
+        .bind(&normalized)
+        .bind(&tag_id)
+        .execute(pool.inner())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if result.rows_affected() == 0 {
+        return Err("Tag not found".to_string());
+    }
+
+    sqlx::query_as::<_, Tag>(
+        "SELECT t.id, t.name, t.created_at, COUNT(DISTINCT et.entry_id) AS entry_count
+         FROM tags t
+         LEFT JOIN entry_tags et ON et.tag_id = t.id
+         WHERE t.id = ?
+         GROUP BY t.id, t.name, t.created_at
+         LIMIT 1",
+    )
+    .bind(&tag_id)
+    .fetch_one(pool.inner())
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn delete_tag(tag_id: String, pool: tauri::State<'_, SqlitePool>) -> Result<(), String> {
     sqlx::query("DELETE FROM tags WHERE id = ?")
         .bind(tag_id)

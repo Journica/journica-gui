@@ -27,6 +27,8 @@ interface Props {
   onSelectFolder: (folderId: string) => void;
   onSelectedFilterTagIdsChange: (tagIds: string[]) => void;
   onCreateTag: (name: string) => Promise<Tag>;
+  onRenameTag: (tagId: string, name: string) => Promise<Tag>;
+  onDeleteTag: (tagId: string) => Promise<void>;
 }
 
 export function NavigationSidebar({
@@ -46,6 +48,8 @@ export function NavigationSidebar({
   onSelectFolder,
   onSelectedFilterTagIdsChange,
   onCreateTag,
+  onRenameTag,
+  onDeleteTag,
 }: Props) {
   const newTagModal = useNewTagModal({ onCreateTag });
 
@@ -114,6 +118,8 @@ export function NavigationSidebar({
           tags={tags}
           selectedFilterTagIds={selectedFilterTagIds}
           onSelectedFilterTagIdsChange={onSelectedFilterTagIdsChange}
+          onRenameTag={onRenameTag}
+          onDeleteTag={onDeleteTag}
         />
       </div>
 

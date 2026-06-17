@@ -18,7 +18,7 @@ export function RecordingControl({ onStop }: Props) {
         {isRecording ? "Stop" : "Record"}
       </button>
       {isRecording && <div className="text-red-500 animate-pulse">Recording...</div>}
-      {errorMessage && <div className="text-sm text-red-600">{errorMessage}</div>}
+      {errorMessage && <div className="text-sm text-red-500">{errorMessage}</div>}
     </div>
   );
 }

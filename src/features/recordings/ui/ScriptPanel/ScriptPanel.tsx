@@ -149,7 +149,7 @@ export function ScriptPanel({
             </div>
           </div>
 
-          {errorMessage && <p className="text-sm text-red-700">{errorMessage}</p>}
+          {errorMessage && <p className="text-sm text-red-500">{errorMessage}</p>}
         </div>
 
         <section>

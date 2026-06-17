@@ -7,6 +7,7 @@ import {
   getEntryTags,
   listTags,
   queryEntries,
+  renameTag as renameTagRequest,
   setEntryFolders as setEntryFoldersRequest,
   setEntryTags as setEntryTagsRequest,
 } from "../api/recordingsApi";
@@ -113,9 +114,22 @@ export function useEntriesQuery(folderId?: string | null) {
     return createdTag;
   }, []);
 
+  const renameTag = useCallback(async (tagId: string, name: string) => {
+    const renamedTag = await renameTagRequest(tagId, name);
+    setTags((previous) => sortTagsByName(previous.map((tag) => (tag.id === tagId ? renamedTag : tag))));
+    setEntries((previous) =>
+      previous.map((entry) => ({
+        ...entry,
+        tags: sortTagsByName(entry.tags.map((tag) => (tag.id === tagId ? renamedTag : tag))),
+      })),
+    );
+    return renamedTag;
+  }, []);
+
   const deleteTag = useCallback(async (tagId: string) => {
     await deleteTagRequest(tagId);
     setTags((previous) => previous.filter((tag) => tag.id !== tagId));
+    setSelectedFilterTagIds((previous) => previous.filter((id) => id !== tagId));
     setEntries((previous) =>
       previous.map((entry) => ({
         ...entry,
@@ -207,6 +221,7 @@ export function useEntriesQuery(folderId?: string | null) {
     loadMore,
     deleteEntry,
     createTag,
+    renameTag,
     deleteTag,
     setEntryTags,
     setEntryFolders,

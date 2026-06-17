@@ -31,6 +31,10 @@ export async function createTag(name: string): Promise<Tag> {
   return invoke<Tag>("create_tag", { name });
 }
 
+export async function renameTag(tagId: string, name: string): Promise<Tag> {
+  return invoke<Tag>("rename_tag", { tagId, name });
+}
+
 export async function deleteTag(tagId: string): Promise<void> {
   await invoke("delete_tag", { tagId });
 }

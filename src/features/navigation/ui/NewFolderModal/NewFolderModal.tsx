@@ -62,7 +62,7 @@ export function NewFolderModal({
         className="h-auto w-full gap-0 rounded-lg px-3 py-2"
         inputClassName="text-dark-90"
       />
-      {errorMessage && <p className="mt-2 text-[12px] leading-4 text-red-600">{errorMessage}</p>}
+      {errorMessage && <p className="mt-2 text-[12px] leading-4 text-red-500">{errorMessage}</p>}
     </Modal>
   );
 }
